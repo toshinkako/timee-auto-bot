@@ -1,7 +1,7 @@
 {
   "name": "timee-auto-bot",
   "dependencies": {
-    "puppeteer": "^21.0.0",
+    "puppeteer-core": "^21.11.0",
     "googleapis": "^126.0.0"
   }
 }
