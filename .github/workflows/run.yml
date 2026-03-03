@@ -1,0 +1,26 @@
+name: Timee Auto Download
+
+on:
+  schedule:
+    - cron: '0 23 * * *'  # JST 8:00（UTC 23:00）
+  workflow_dispatch:
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - run: npm install
+
+      - run: node index.js
+        env:
+          TIMEE_ID: ${{ secrets.TIMEE_ID }}
+          TIMEE_PASS: ${{ secrets.TIMEE_PASS }}
+          GDRIVE_CREDENTIALS: ${{ secrets.GDRIVE_CREDENTIALS }}
+          DRIVE_FOLDER_ID: ${{ secrets.DRIVE_FOLDER_ID }}
