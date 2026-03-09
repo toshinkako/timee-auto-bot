@@ -6,11 +6,12 @@ const CLIENT_ID = "325162";
 
 (async () => {
 
-const browser = await puppeteer.launch({
+  const browser = await puppeteer.launch({
   executablePath: "/usr/bin/google-chrome",
   args: ['--no-sandbox','--disable-setuid-sandbox'],
   headless: "new"
-});
+  });
+  
   const page = await browser.newPage();
 
   // ログイン
