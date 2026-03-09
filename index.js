@@ -93,6 +93,51 @@ fs.writeFileSync(filePath,buffer);
 
 console.log("Excel保存完了");
 
+  const { google } = require("googleapis");
+
+/* workers取得 */
+
+const workers = await page.evaluate(async (url) => {
+
+ const res = await fetch(url.replace(".xlsx",".json"),{
+  credentials:"include"
+ });
+
+ const data = await res.json();
+
+ return data.workers.map(w => w.user.name);
+
+}, apiUrl);
+
+const workerCount = workers.length;
+const names = workers.join(",");
+
+console.log("勤務人数:", workerCount);
+
+/* Google Sheets */
+
+const auth = new google.auth.GoogleAuth({
+ credentials: JSON.parse(process.env.GDRIVE_CREDENTIALS),
+ scopes: ["https://www.googleapis.com/auth/spreadsheets"]
+});
+
+const sheets = google.sheets({
+ version: "v4",
+ auth
+});
+
+await sheets.spreadsheets.values.append({
+ spreadsheetId: process.env.SPREADSHEET_ID,
+ range: "timee_log!A:C",
+ valueInputOption: "USER_ENTERED",
+ requestBody: {
+  values: [
+   [`${yyyy}/${mm}/${dd}`, workerCount, names]
+  ]
+ }
+});
+
+console.log("Sheets記録完了");
 await browser.close();
 
 })();
