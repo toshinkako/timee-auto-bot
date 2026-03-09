@@ -38,27 +38,13 @@ if(!loaded){
  throw new Error("ログインページ取得失敗");
 }
 
-/* email入力欄自動検出 */
-const emailSelector = await page.evaluate(()=>{
- const inputs=[...document.querySelectorAll("input")];
-
- const emailInput=inputs.find(i =>
-  i.type==="email" ||
-  i.name?.includes("email") ||
-  i.placeholder?.includes("メール")
- );
-
- return emailInput ? emailInput.outerHTML : null;
-});
-
+/* email入力 */
 await page.type('input[type="email"], input[name*="email"], input[placeholder*="メール"]', process.env.TAIMEE_EMAIL);
 
 /* password入力 */
-
 await page.type('input[type="password"]', process.env.TAIMEE_PASSWORD);
 
-/* ログインボタン自動検出 */
-
+/* ログイン */
 const loginButton = await page.$(
  'button[type="submit"], button, input[type="submit"]'
 );
@@ -69,7 +55,7 @@ await page.waitForTimeout(8000);
 
 console.log("ログイン成功");
 
-/* ここから通常処理 */
+/* Excel取得 */
 
 const now = new Date();
 
@@ -93,18 +79,6 @@ fs.writeFileSync(filePath,buffer);
 
 console.log("Excel保存完了");
 
-
-  const response = await page.goto(apiUrl);
-
-const buffer = await response.buffer();
-
-const filePath = `timee_${yyyy}${mm}${dd}.xlsx`;
-
-fs.writeFileSync(filePath, buffer);
-
-console.log("Excel保存完了");
-  
-
-  await browser.close();
+await browser.close();
 
 })();
