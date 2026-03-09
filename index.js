@@ -18,7 +18,9 @@ const page = await browser.newPage();
 
 console.log("Timeeログイン開始");
 
-await page.goto("https://app-new.taimee.co.jp/account");
+await page.goto("https://app.taimee.co.jp/login", {
+  waitUntil: "networkidle2"
+});
 
 await page.waitForSelector('input[type="email"]');
 
@@ -30,7 +32,7 @@ await page.click('button[type="submit"]');
 await page.waitForTimeout(8000);
 
 console.log("ログイン成功");
-
+ 
 const now = new Date();
 
 const yyyy = now.getFullYear();
