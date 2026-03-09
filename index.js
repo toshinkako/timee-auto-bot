@@ -20,8 +20,10 @@ console.log("Timeeログイン開始");
 
 await page.goto("https://app-new.taimee.co.jp/account");
 
-await page.type('input[name="email"]', process.env.TAIMEE_EMAIL);
-await page.type('input[name="password"]', process.env.TAIMEE_PASSWORD);
+await page.waitForSelector('input[type="email"]');
+
+await page.type('input[type="email"]', process.env.TAIMEE_EMAIL);
+await page.type('input[type="password"]', process.env.TAIMEE_PASSWORD);
 
 await page.click('button[type="submit"]');
 
