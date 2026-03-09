@@ -15,22 +15,21 @@ const CLIENT_ID = "325162";
 
     const page = await browser.newPage();
 
-    console.log("Timeeログイン開始");
+console.log("Timeeログイン開始");
 
-    await page.goto("https://app-new.taimee.co.jp/account", {
-      waitUntil: "networkidle2"
-    });
+await page.goto("https://app-new.taimee.co.jp/account", {
+  waitUntil: "networkidle2"
+});
 
-    await page.type('input[name="email"]', process.env.TIMEE_ID);
-    await page.type('input[name="password"]', process.env.TIMEE_PASS);
+await page.type('input[name="email"]', process.env.TIMEE_ID);
+await page.type('input[name="password"]', process.env.TIMEE_PASS);
 
-    await Promise.all([
-      page.click('button[type="submit"]'),
-      page.waitForNavigation({ waitUntil: "networkidle2" })
-    ]);
+await page.click('button[type="submit"]');
 
-    console.log("ログイン成功");
+await page.waitForTimeout(8000);
 
+console.log("ログイン成功");
+    
     // JST日付
     const now = new Date();
     const yyyy = now.getFullYear();
