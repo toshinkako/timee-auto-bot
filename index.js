@@ -1,3 +1,5 @@
+console.log("CLIENT_ID:", process.env.CLIENT_ID);
+
 const puppeteer = require("puppeteer-core");
 const fs = require("fs");
 const { google } = require("googleapis");
