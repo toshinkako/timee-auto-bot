@@ -25,7 +25,6 @@ jobs:
       - name: Run bot
         run: node index.js
         env:
-          TIMEE_ID: ${{ secrets.TIMEE_ID }}
-          TIMEE_PASS: ${{ secrets.TIMEE_PASS }}
-          GDRIVE_CREDENTIALS: ${{ secrets.GDRIVE_CREDENTIALS }}
-          DRIVE_FOLDER_ID: ${{ secrets.DRIVE_FOLDER_ID }}
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          TAIMEE_EMAIL: ${{ secrets.TAIMEE_EMAIL }}
+          TAIMEE_PASSWORD: ${{ secrets.TAIMEE_PASSWORD }}
