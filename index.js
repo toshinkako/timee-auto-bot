@@ -2,7 +2,7 @@ const puppeteer = require("puppeteer-core");
 const fs = require("fs");
 const { google } = require("googleapis");
 
-const CLIENT_ID = "325162";
+const CLIENT_ID = process.env.CLIENT_ID;
 
 (async () => {
 
@@ -18,8 +18,8 @@ console.log("Timeeログイン開始");
 
 await page.goto("https://app-new.taimee.co.jp/account");
 
-await page.type('input[name="email"]', process.env.TIMEE_ID);
-await page.type('input[name="password"]', process.env.TIMEE_PASS);
+await page.type('input[name="email"]', process.env.TAIMEE_EMAIL);
+await page.type('input[name="password"]', process.env.TAIMEE_PASSWORD);
 
 await page.click('button[type="submit"]');
 
