@@ -99,11 +99,30 @@ const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
 const data = XLSX.utils.sheet_to_json(sheet);
 
-const names = data.map(row=>row["氏名"] || row["名前"] || row["Name"]).filter(Boolean);
+const staff = data.map(row => {
 
-const count = names.length;
+ const name =
+  row["氏名"] ||
+  row["名前"] ||
+  row["Name"];
 
-console.log("勤務人数:",count);
+ const start =
+  row["勤務開始"] ||
+  row["開始時間"] ||
+  row["Start"];
+
+ const end =
+  row["勤務終了"] ||
+  row["終了時間"] ||
+  row["End"];
+
+ if(!name) return null;
+
+ return `・${name} (${start}〜${end})`;
+
+}).filter(Boolean);
+
+const count = staff.length;
 
 message += `
 
@@ -111,7 +130,7 @@ message += `
 勤務人数: ${count}人
 
 スタッフ
-${names.map(n=>"・"+n).join("\n")}
+${staff.join("\n")}
 `;
  
 }
