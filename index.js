@@ -71,6 +71,7 @@ const dd=String(now.getDate()).padStart(2,"0");
 
 const from=`${yyyy}-${mm}-${dd}T00:00:00+09:00`;
 const to=`${yyyy}-${mm}-${dd}T23:59:59+09:00`;
+let message = "Timee勤務データ\n";
 
 for (const CLIENT_ID of CLIENT_IDS) {
 
@@ -101,10 +102,14 @@ const count = names.length;
 
 console.log("勤務人数:",count);
 
-message += `\n店舗 ${CLIENT_ID}\n勤務人数: ${count}人\n`
-スタッフ
-${names.map(n=>"・"+n).join("\n")}`;
+message += `
 
+店舗 ${CLIENT_ID}
+勤務人数: ${count}人
+
+スタッフ
+${names.map(n=>"・"+n).join("\n")}
+`;
  
 }
 
@@ -112,19 +117,12 @@ ${names.map(n=>"・"+n).join("\n")}`;
 
 if(SLACK_WEBHOOK){
 
- const text =
-`Timee勤務データ取得完了
-勤務人数: ${count}人
-
-スタッフ
-${names.map(n=>"・"+n).join("\n")}`;
-
  await fetch(SLACK_WEBHOOK,{
   method:"POST",
   headers:{
    "Content-Type":"application/json"
   },
-  body:JSON.stringify({message})
+  body:JSON.stringify({text: message})
  });
 
  console.log("Slack通知完了");
