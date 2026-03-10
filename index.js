@@ -87,16 +87,11 @@ for (const CLIENT_ID of CLIENT_IDS) {
 
  console.log("Excel保存:", filePath);
 
-}
- 
-
 /* Excel解析 */
 
 const workbook = XLSX.readFile(filePath);
 
-const sheetName = workbook.SheetNames[0];
-
-const sheet = workbook.Sheets[sheetName];
+const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
 const data = XLSX.utils.sheet_to_json(sheet);
 
@@ -106,7 +101,14 @@ const count = names.length;
 
 console.log("勤務人数:",count);
 
-/* Slack通知 */
+message += `\n店舗 ${CLIENT_ID}\n勤務人数: ${count}人\n`
+スタッフ
+${names.map(n=>"・"+n).join("\n")}`;
+
+ 
+}
+
+ /* Slack通知 */
 
 if(SLACK_WEBHOOK){
 
@@ -122,7 +124,7 @@ ${names.map(n=>"・"+n).join("\n")}`;
   headers:{
    "Content-Type":"application/json"
   },
-  body:JSON.stringify({text})
+  body:JSON.stringify({message})
  });
 
  console.log("Slack通知完了");
