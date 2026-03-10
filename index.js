@@ -1,6 +1,7 @@
 const puppeteer = require("puppeteer-core");
 const fs = require("fs");
 const XLSX = require("xlsx");
+const CLIENT_IDS = ["325161","325162"];
 
 const CLIENT_ID = process.env.CLIENT_ID;
 const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
@@ -71,20 +72,23 @@ const dd=String(now.getDate()).padStart(2,"0");
 const from=`${yyyy}-${mm}-${dd}T00:00:00+09:00`;
 const to=`${yyyy}-${mm}-${dd}T23:59:59+09:00`;
 
-const apiUrl=
-`https://api-app-new.taimee.co.jp/app/api/v1/clients/${CLIENT_ID}/attending_worker_lists/workers.xlsx?start_at_from=${encodeURIComponent(from)}&start_at_to=${encodeURIComponent(to)}`;
+for (const CLIENT_ID of CLIENT_IDS) {
 
-/* Excel取得 */
+ const apiUrl =
+ `https://api-app-new.taimee.co.jp/app/api/v1/clients/${CLIENT_ID}/attending_worker_lists/workers.xlsx?start_at_from=${encodeURIComponent(from)}&start_at_to=${encodeURIComponent(to)}`;
 
-const excelResponse = await page.goto(apiUrl);
+ const excelResponse = await page.goto(apiUrl);
 
-const buffer = await excelResponse.buffer();
+ const buffer = await excelResponse.buffer();
 
-const filePath=`timee_${yyyy}${mm}${dd}.xlsx`;
+ const filePath = `timee_${CLIENT_ID}_${yyyy}${mm}${dd}.xlsx`;
 
-fs.writeFileSync(filePath,buffer);
+ fs.writeFileSync(filePath, buffer);
 
-console.log("Excel保存完了:",filePath);
+ console.log("Excel保存:", filePath);
+
+}
+ 
 
 /* Excel解析 */
 
