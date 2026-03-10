@@ -28,9 +28,10 @@ jobs:
           CLIENT_ID: ${{ secrets.CLIENT_ID }}
           TAIMEE_EMAIL: ${{ secrets.TAIMEE_EMAIL }}
           TAIMEE_PASSWORD: ${{ secrets.TAIMEE_PASSWORD }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
 
       - name: Upload Excel
         uses: actions/upload-artifact@v4
         with:
           name: timee-excel
-          path: "*.xlsx"
+          path: timee_*.xlsx
