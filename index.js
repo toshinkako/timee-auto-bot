@@ -2,8 +2,11 @@ const puppeteer = require("puppeteer-core");
 const fs = require("fs");
 const XLSX = require("xlsx");
 const CLIENT_IDS = ["325161","325162"];
+const STORE_NAMES = {
+ "325161": "大山",
+ "325162": "一宮"
+};
 
-const CLIENT_ID = process.env.CLIENT_ID;
 const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
 
 (async () => {
@@ -104,7 +107,7 @@ console.log("勤務人数:",count);
 
 message += `
 
-店舗 ${CLIENT_ID}
+店舗 ${STORE_NAMES[CLIENT_ID]}
 勤務人数: ${count}人
 
 スタッフ
