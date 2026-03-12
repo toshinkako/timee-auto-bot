@@ -279,7 +279,7 @@ async function writeSheet(date,time,store,count,staff,total){
 
   requestBody:{
    values:[
-    [date,time,store,count,staff.join(","),"",total]
+    [date,time,store,count,staff,"",total]
    ]
   }
 
