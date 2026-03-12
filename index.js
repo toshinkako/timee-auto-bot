@@ -25,15 +25,39 @@ await page.setDefaultNavigationTimeout(60000);
 
 console.log("Timeeログイン開始");
 
-await page.goto(
- "https://app-new.taimee.co.jp/account",
- {waitUntil:"networkidle2"}
-);
+const loginUrls = [
+ "https://app.taimee.co.jp/login",
+ "https://app-new.taimee.co.jp/account"
+];
 
-await page.waitForSelector('input[type="email"]');
- 
+let loaded=false;
+for(const url of loginUrls){
+
+ try{
+
+  await page.goto(url,{waitUntil:"networkidle2"});
+
+  await page.waitForSelector("input",{timeout:5000});
+
+  console.log("ログインページ:",url);
+
+  loaded=true;
+
+  break;
+
+ }catch(e){}
+
+}
+
+if(!loaded){
+
+ throw new Error("ログインページ取得失敗");
+
+}
+
+
 await page.type(
- 'input[type="email"]',
+ 'input[type="email"], input[name*="email"], input[placeholder*="メール"]',
  process.env.TAIMEE_EMAIL
 );
 
@@ -42,6 +66,10 @@ await page.type(
  process.env.TAIMEE_PASSWORD
 );
 
+const loginButton = await page.$(
+ 'button[type="submit"], button, input[type="submit"]'
+);
+ 
 await Promise.all([
  page.waitForNavigation({waitUntil:"networkidle2"}),
  page.click('button[type="submit"]')
