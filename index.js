@@ -85,11 +85,8 @@ const yyyy = parts.find(p => p.type === 'year').value;
 const mm = parts.find(p => p.type === 'month').value;
 const dd = parts.find(p => p.type === 'day').value;
  
-const yyyy2 = now.toLocaleString("ja-JP",{timeZone:"Asia/Tokyo",year:"numeric"});
-const mm2 = now.toLocaleString("ja-JP",{timeZone:"Asia/Tokyo",month:"numeric"});
-const dd2 = now.toLocaleString("ja-JP",{timeZone:"Asia/Tokyo",day:"numeric"});
 const date = `${yyyy}/${mm}/${dd}`;
-console.log(yyyy,mm,dd,yyyy2,mm2,dd2,date)
+
 const time = now.toLocaleTimeString("ja-JP",{timeZone:"Asia/Tokyo",hour:"2-digit",minute:"2-digit"});
 
 const from=`${yyyy}-${mm}-${dd}T00:00:00+09:00`;
@@ -283,9 +280,7 @@ async function writeSheet(date,time,store,count,staff,total){
   valueInputOption:"USER_ENTERED",
 
   requestBody:{
-   values:[
-    [date,time,store,count,staff,"",total]
-   ]
+   values:[[date,time,store,count,staff,"",total]]
   }
 
  });
