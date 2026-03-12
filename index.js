@@ -87,7 +87,7 @@ const dd = now.toLocaleDateString("ja-JP",{timeZone:"Asia/Tokyo",day:"2-digit"})
 const date = `${yyyy}/${mm}/${dd}`;
 
 const time = now.toLocaleTimeString("ja-JP",{timeZone:"Asia/Tokyo",hour:"2-digit",minute:"2-digit"});
-
+console.log(yyyy,mm,dd,date,time)
 const from=`${yyyy}-${mm}-${dd}T00:00:00+09:00`;
 const to=`${yyyy}-${mm}-${dd}T23:59:59+09:00`;
 
