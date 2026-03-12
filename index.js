@@ -66,10 +66,6 @@ await page.type(
  process.env.TAIMEE_PASSWORD
 );
 
-const loginButton = await page.$(
- 'button[type="submit"], button, input[type="submit"]'
-);
- 
 await Promise.all([
  page.waitForNavigation({waitUntil:"networkidle2"}),
  page.click('button[type="submit"]')
@@ -102,8 +98,8 @@ for(const CLIENT_ID of CLIENT_IDS){
  const apiUrl =
 `https://api-app-new.taimee.co.jp/app/api/v1/clients/${CLIENT_ID}/attending_worker_lists/workers.xlsx?start_at_from=${encodeURIComponent(from)}&start_at_to=${encodeURIComponent(to)}`;
 
- const res = await page.goto(apiUrl);
-
+await page.evaluate(url=>fetch(url),apiUrl)
+ 
  const buffer = await res.buffer();
 
  const filePath=`timee_${CLIENT_ID}_${yyyy}${mm}${dd}.xlsx`;
@@ -226,13 +222,14 @@ function calcTotalWork(staff){
 
   if(!s.start||!s.end) return;
 
-  const start=roundUp(new Date(`1970-01-01T${s.start}`));
-  const end=roundDown(new Date(`1970-01-01T${s.end}`));
+  const start=roundUp(new Date(`1970-01-01T${s.start}:00`));
+  const end=roundDown(new Date(`1970-01-01T${s.end}:00`));
 
   let hours=(end-start)/1000/60/60;
 
-  hours-=1;
-
+  if(hours>3.5){
+   hours-=1;
+  }
   total+=hours;
 
  });
