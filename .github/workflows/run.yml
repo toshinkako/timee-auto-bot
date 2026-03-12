@@ -2,11 +2,10 @@ name: Timee Auto Bot
 
 on:
 schedule:
-
-```
 # 6:00 勤務予定確認
 - cron: '0 21 * * *'
 
+```
 # 8:00 再確認
 - cron: '0 23 * * *'
 
