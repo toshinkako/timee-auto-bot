@@ -78,16 +78,15 @@ await Promise.all([
 console.log("ログイン成功");
 
 /* 現在時刻 */
-const now = new Date().toLocaleString("ja-JP", {timeZone: "Asia/Tokyo"});
+const now = new Date();
  
-const yyyy = now.getFullYear();
-const mm = String(now.getMonth()+1).padStart(2,"0");
-const dd = String(now.getDate()).padStart(2,"0");
+const yyyy = now.toLocaleDateString("ja-JP",{timeZone:"Asia/Tokyo",year:"numeric"});
+const mm = now.toLocaleDateString("ja-JP",{timeZone:"Asia/Tokyo",month:"2-digit"});
+const dd = now.toLocaleDateString("ja-JP",{timeZone:"Asia/Tokyo",day:"2-digit"});
 
 const date = `${yyyy}/${mm}/${dd}`;
 
-const time =
-`${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+const time = now.toLocaleTimeString("ja-JP",{timeZone:"Asia/Tokyo",hour:"2-digit",minute:"2-digit"});
 
 const from=`${yyyy}-${mm}-${dd}T00:00:00+09:00`;
 const to=`${yyyy}-${mm}-${dd}T23:59:59+09:00`;
