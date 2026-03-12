@@ -272,7 +272,7 @@ async function writeSheet(date,time,store,count,staff,total){
 
  await sheets.spreadsheets.values.append({
 
-  spreadsheetId:process.env.GOOGLE_SHEETS_ID,
+  spreadsheetId:process.env.SPREADSHEET_ID,
 
   range:"Sheet1!A:G",
 
