@@ -175,7 +175,7 @@ async function writeSheet(store, count, staff){
 
  await sheets.spreadsheets.values.append({
   spreadsheetId: process.env.GOOGLE_SHEETS_ID,
-  range: "バイト!A:D",
+  range: "sheet1!A:D",
   valueInputOption:"USER_ENTERED",
   requestBody:{
    values:[
