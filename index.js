@@ -75,12 +75,21 @@ console.log("ログイン成功");
 
 /* 現在時刻 */
 const now = new Date();
+const parts = new Intl.DateTimeFormat("ja-JP", {
+  timeZone: "Asia/Tokyo",
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+}).formatToParts(now);
+const yyyy = parts.find(p => p.type === 'year').value;
+const mm = parts.find(p => p.type === 'month').value;
+const dd = parts.find(p => p.type === 'day').value;
  
-const yyyy = now.toLocaleString("ja-JP",{timeZone:"Asia/Tokyo",year:"numeric"});
-const mm = now.toLocaleString("ja-JP",{timeZone:"Asia/Tokyo",month:"numeric"});
-const dd = now.toLocaleString("ja-JP",{timeZone:"Asia/Tokyo",day:"numeric"});
+const yyyy2 = now.toLocaleString("ja-JP",{timeZone:"Asia/Tokyo",year:"numeric"});
+const mm2 = now.toLocaleString("ja-JP",{timeZone:"Asia/Tokyo",month:"numeric"});
+const dd2 = now.toLocaleString("ja-JP",{timeZone:"Asia/Tokyo",day:"numeric"});
 const date = `${yyyy}/${mm}/${dd}`;
-
+console.log(yyyy,mm,dd,yyyy2,mm2,dd2,date)
 const time = now.toLocaleTimeString("ja-JP",{timeZone:"Asia/Tokyo",hour:"2-digit",minute:"2-digit"});
 
 const from=`${yyyy}-${mm}-${dd}T00:00:00+09:00`;
