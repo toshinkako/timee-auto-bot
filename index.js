@@ -1,6 +1,7 @@
 const puppeteer = require("puppeteer-core");
 const fs = require("fs");
 const XLSX = require("xlsx");
+const { google } = require("googleapis");
 const CLIENT_IDS = ["325161","325162"];
 const STORE_NAMES = {
  "325161": "大山",
@@ -8,6 +9,30 @@ const STORE_NAMES = {
 };
 
 const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
+
+async function writeSheet(store, count, staff){
+
+ const auth = new google.auth.GoogleAuth({
+  credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT),
+  scopes: ["https://www.googleapis.com/auth/spreadsheets"]
+ });
+
+ const sheets = google.sheets({version:"v4",auth});
+
+ const now = new Date().toLocaleDateString("ja-JP");
+
+ await sheets.spreadsheets.values.append({
+  spreadsheetId: process.env.GOOGLE_SHEETS_ID,
+  range: "Sheet1!A:D",
+  valueInputOption:"USER_ENTERED",
+  requestBody:{
+   values:[
+    [now,store,count,staff.join(",")]
+   ]
+  }
+ });
+
+}
 
 (async () => {
 
@@ -132,6 +157,12 @@ message += `
 スタッフ
 ${staff.join("\n")}
 `;
+
+ await writeSheet(
+ STORE_NAMES[CLIENT_ID],
+ count,
+ names
+);
  
 }
 
