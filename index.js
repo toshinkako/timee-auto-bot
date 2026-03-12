@@ -137,7 +137,7 @@ ${staff.join("\n")}
  await writeSheet(
  STORE_NAMES[CLIENT_ID],
  count,
- names
+ staff
 );
  
 }
