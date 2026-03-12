@@ -24,8 +24,13 @@ const page = await browser.newPage();
 
 console.log("Timeeログイン開始");
 
-await page.goto("https://app-new.taimee.co.jp/account",{waitUntil:"networkidle2"});
+await page.goto(
+ "https://app-new.taimee.co.jp/account",
+ {waitUntil:"networkidle2"}
+);
 
+await page.waitForSelector('input[type="email"]');
+ 
 await page.type(
  'input[type="email"]',
  process.env.TAIMEE_EMAIL
@@ -36,9 +41,10 @@ await page.type(
  process.env.TAIMEE_PASSWORD
 );
 
-await page.click('button[type="submit"]');
-
-await page.waitForTimeout(8000);
+await Promise.all([
+ page.waitForNavigation({waitUntil:"networkidle2"}),
+ page.click('button[type="submit"]')
+]);
 
 console.log("ログイン成功");
 
