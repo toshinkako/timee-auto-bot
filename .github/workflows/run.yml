@@ -40,7 +40,7 @@ jobs:
           TAIMEE_EMAIL: ${{ secrets.TAIMEE_EMAIL }}
           TAIMEE_PASSWORD: ${{ secrets.TAIMEE_PASSWORD }}
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          GOOGLE_SHEETS_ID: ${{ secrets.SPREADSHEET_ID }}
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
           GOOGLE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SERVICE_ACCOUNT }}
 
       - name: Upload Excel
