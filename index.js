@@ -76,14 +76,13 @@ console.log("ログイン成功");
 /* 現在時刻 */
 const now = new Date();
  
-const yyyy = now.toLocaleDateString("ja-JP",{timeZone:"Asia/Tokyo",year:"numeric"});
-const mm = now.toLocaleDateString("ja-JP",{timeZone:"Asia/Tokyo",month:"2-digit"});
-const dd = now.toLocaleDateString("ja-JP",{timeZone:"Asia/Tokyo",day:"2-digit"});
-
+const yyyy = now.toLocaleString("ja-JP",{timeZone:"Asia/Tokyo",year:"numeric"});
+const mm = now.toLocaleString("ja-JP",{timeZone:"Asia/Tokyo",month:"numeric"});
+const dd = now.toLocaleString("ja-JP",{timeZone:"Asia/Tokyo",day:"numeric"});
 const date = `${yyyy}/${mm}/${dd}`;
 
 const time = now.toLocaleTimeString("ja-JP",{timeZone:"Asia/Tokyo",hour:"2-digit",minute:"2-digit"});
-console.log(yyyy,mm,dd,date,time)
+
 const from=`${yyyy}-${mm}-${dd}T00:00:00+09:00`;
 const to=`${yyyy}-${mm}-${dd}T23:59:59+09:00`;
 
