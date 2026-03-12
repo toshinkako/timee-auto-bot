@@ -10,30 +10,6 @@ const STORE_NAMES = {
 
 const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
 
-async function writeSheet(store, count, staff){
-
- const auth = new google.auth.GoogleAuth({
-  credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT),
-  scopes: ["https://www.googleapis.com/auth/spreadsheets"]
- });
-
- const sheets = google.sheets({version:"v4",auth});
-
- const now = new Date().toLocaleDateString("ja-JP");
-
- await sheets.spreadsheets.values.append({
-  spreadsheetId: process.env.GOOGLE_SHEETS_ID,
-  range: "Sheet1!A:D",
-  valueInputOption:"USER_ENTERED",
-  requestBody:{
-   values:[
-    [now,store,count,staff.join(",")]
-   ]
-  }
- });
-
-}
-
 (async () => {
 
 const browser = await puppeteer.launch({
@@ -185,3 +161,28 @@ if(SLACK_WEBHOOK){
 await browser.close();
 
 })();
+
+async function writeSheet(store, count, staff){
+
+ const auth = new google.auth.GoogleAuth({
+  credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT),
+  scopes: ["https://www.googleapis.com/auth/spreadsheets"]
+ });
+
+ const sheets = google.sheets({version:"v4",auth});
+
+ const now = new Date().toLocaleDateString("ja-JP");
+
+ await sheets.spreadsheets.values.append({
+  spreadsheetId: process.env.GOOGLE_SHEETS_ID,
+  range: "Sheet1!A:D",
+  valueInputOption:"USER_ENTERED",
+  requestBody:{
+   values:[
+    [now,store,count,staff.join(",")]
+   ]
+  }
+ });
+
+}
+
