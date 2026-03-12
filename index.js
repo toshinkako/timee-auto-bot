@@ -98,7 +98,7 @@ for(const CLIENT_ID of CLIENT_IDS){
  const apiUrl =
 `https://api-app-new.taimee.co.jp/app/api/v1/clients/${CLIENT_ID}/attending_worker_lists/workers.xlsx?start_at_from=${encodeURIComponent(from)}&start_at_to=${encodeURIComponent(to)}`;
 
-await page.evaluate(url=>fetch(url),apiUrl)
+const res = await page.goto(apiUrl,{waitUntil:"networkidle2"});
  
  const buffer = await res.buffer();
 
