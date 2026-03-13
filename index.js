@@ -122,9 +122,10 @@ for(let i=0;i<3;i++){
  try{
   res = await page.goto(apiUrl,{waitUntil:"networkidle2"});
   if(res && res.ok()) break;
- }catch(e){}
+ }catch(e){console.log(e)}
 }
-if(!res || !res.ok()){
+if(!res){
+//if(!res || !res.ok()){
  console.log(`${store} API取得失敗`);
  continue;
 }
