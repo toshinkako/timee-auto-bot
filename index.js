@@ -72,10 +72,11 @@ await Promise.all([
 ]);
 
 console.log("ログイン成功");
-await page.goto("https://app.taimee.co.jp/client/attending_worker_lists",{
+await page.goto("https://app-new.taimee.co.jp",{
  waitUntil:"networkidle2"
 });
-await page.waitForTimeout(3000);
+
+ await page.waitForTimeout(3000);
  
 /* 現在時刻 */
 const now = new Date();
@@ -116,19 +117,20 @@ for(const CLIENT_ID of CLIENT_IDS){
  const apiUrl =
 `https://api-app-new.taimee.co.jp/app/api/v1/clients/${CLIENT_ID}/attending_worker_lists/workers.xlsx?start_at_from=${encodeURIComponent(from)}&start_at_to=${encodeURIComponent(to)}`;
 
-let res;
+ let res;
 
 for(let i=0;i<3;i++){
  try{
-  res = await page.evaluate(async(url)=>{
+/*  res = await page.evaluate(async(url)=>{
    const r = await fetch(url,{credentials:"include"});
    const buf = await r.arrayBuffer();
    return Array.from(new Uint8Array(buf));
   },apiUrl);
 
   if(res) break;
-//  res = await page.goto(apiUrl,{waitUntil:"networkidle2"});
-//  if(res && res.ok()) break;
+*/
+  res = await page.goto(apiUrl,{waitUntil:"networkidle2"});
+  if(res && res.ok()) break;
  }catch(e){console.log(e)}
 }
 if(!res){
