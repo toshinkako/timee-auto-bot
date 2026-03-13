@@ -114,36 +114,52 @@ for(const CLIENT_ID of CLIENT_IDS){
 
  const store = STORE_NAMES[CLIENT_ID];
 
-// const apiUrl =
-//`https://api-app-new.taimee.co.jp/app/api/v1/clients/${CLIENT_ID}/attending_worker_lists/workers.xlsx?start_at_from=${encodeURIComponent(from)}&start_at_to=${encodeURIComponent(to)}`;
-const apiUrl =
-`https://app-new.taimee.co.jp/app/api/v1/clients/${CLIENT_ID}/attending_worker_lists/workers.xlsx?start_at_from=${encodeURIComponent(from)}&start_at_to=${encodeURIComponent(to)}`;
+ await new Promise(r => setTimeout(r, 2000));
+ const apiUrl = `https://api-app-new.taimee.co.jp/app/api/v1/clients/${CLIENT_ID}/attending_worker_lists/workers.xlsx?start_at_from=${encodeURIComponent(from)}&start_at_to=${encodeURIComponent(to)}`;
+//const apiUrl =
+//`https://app-new.taimee.co.jp/app/api/v1/clients/${CLIENT_ID}/attending_worker_lists/workers.xlsx?start_at_from=${encodeURIComponent(from)}&start_at_to=${encodeURIComponent(to)}`;
  let res;
-
-for(let i=0;i<3;i++){
+try {
+    await page.setExtraHTTPHeaders({
+      'Referer': 'https://app-new.taimee.co.jp/'
+    });
+    
+    res = await page.goto(apiUrl, { waitUntil: "networkidle2" });
+  } catch (e) {
+    console.log(`${store} 通信エラー:`, e.message);
+  }
+/*
+ for(let i=0;i<3;i++){
  try{
-/*  res = await page.evaluate(async(url)=>{
+  res = await page.evaluate(async(url)=>{
    const r = await fetch(url,{credentials:"include"});
    const buf = await r.arrayBuffer();
    return Array.from(new Uint8Array(buf));
   },apiUrl);
 
   if(res) break;
-*/
+
   res = await page.goto(apiUrl,{waitUntil:"networkidle2"});
   if(res && res.ok()) break;
  }catch(e){console.log(e)}
 }
-if(!res){
-//if(!res || !res.ok()){
- console.log(`${store} API取得失敗`);
+*/
+ //if(!res){
+if(!res || !res.ok()){
+ console.log(`${store} API取得失敗 (Status: ${res ? res.status() : 'No Response'})`);
+// console.log(`${store} API取得失敗`);
  continue;
 }
  
  const buffer = await res.buffer();
-/* HTML誤取得対策（ログインページ対策） */
-const textCheck = buffer.toString("utf8",0,200).toLowerCase();
 
+ /* HTML誤取得対策（ログインページ対策） */
+const textCheck = buffer.toString("utf8",0,200).toLowerCase();
+if (textCheck.includes("error") || textCheck.includes("認証")) {
+    console.log(`${store} 認証エラーが発生しました。メッセージ:`, textCheck);
+    continue; 
+  }
+ 
 if(textCheck.includes("<!doctype") || textCheck.includes("<html")){
  console.log(`${store} HTML取得（セッション切れの可能性）`);
  continue;
