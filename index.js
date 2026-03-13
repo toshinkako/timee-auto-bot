@@ -100,7 +100,7 @@ const time = now.toLocaleTimeString("ja-JP",{timeZone:"Asia/Tokyo",hour:"2-digit
 const from=`${yyyy}-${mm}-${dd}T00:00:00+09:00`;
 const to=`${yyyy}-${mm}-${dd}T23:59:59+09:00`;
 
-let message = `Timee確認 ${date} ${time}\n`;
+let message = `【Timee勤務確認】 ${date} ${time}\n`;
 let sendSlack = true;
 
 /* 店舗ループ */
@@ -120,13 +120,20 @@ for(let i=0;i<3;i++){
   if(res && res.ok()) break;
  }catch(e){}
 }
-if(!res){
+if(!res || !res.ok()){
  console.log(`${store} API取得失敗`);
  continue;
 }
  
  const buffer = await res.buffer();
+/* HTML誤取得対策（ログインページ対策） */
+const textCheck = buffer.toString("utf8",0,200).toLowerCase();
 
+if(textCheck.includes("<!doctype") || textCheck.includes("<html")){
+ console.log(`${store} HTML取得（セッション切れの可能性）`);
+ continue;
+}
+ 
  const filePath=`timee_${CLIENT_ID}_${yyyy}${mm}${dd}.xlsx`;
 
  fs.writeFileSync(filePath,buffer);
@@ -156,9 +163,10 @@ const staff = data.map(row=>{
  const name =
  row["氏名"]||
  row["名前"]||
- row["Name"];
+ row["Name"]||
+ row["ワーカー名"];
 
- onst start =
+ const start =
  row["勤務開始"]||
  row["開始時間"]||
  row["開始"];
@@ -210,15 +218,9 @@ staff.forEach(s=>{
  message += `・${s.name} (${s.start}〜${s.end})\n`;
 });
 
-/* 勤務終了判定 */
+/* 勤務終了判定 -> 勤務中なら終了（15:30チェック） */
 
-let allFinished=true;
-
-staff.forEach(s=>{
- if(!s.end) allFinished=false;
-});
-
- /* 勤務中なら終了（15:30チェック） */
+const allFinished = staff.every(s => s.end);
 
 if(MODE==="workcheck" && !allFinished){
  sendSlack = false;
