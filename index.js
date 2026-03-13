@@ -140,23 +140,25 @@ try {
 
  console.log(`${store} の ${targetDateStr} のボタンを探しています...`);
 
-  const clickResult = await page.evaluate((dateStr) => {
-    // 1. まず、日付が書いてある要素を探す
-    const allElements = Array.from(document.querySelectorAll('div, span, p, td'));
-    const dateElement = allElements.find(e => e.innerText.trim() === dateStr);
-   if (!dateElement) return { success: false, reason: "日付が見つかりません" };
-   const row = dateElement.closest('div[class*="row"], tr, [class*="item"]'); 
-    if (!row) return { success: false, reason: "行の枠組みが見つかりません" };
-   const buttons = Array.from(row.querySelectorAll('button, a, span'));
-    const downloadBtn = buttons.find(b => 
-      b.innerText.includes("ダウンロード") && !b.innerText.includes("設定")
-    );
-   if (downloadBtn) {
-      const clickTarget = downloadBtn.closest('button') || downloadBtn.closest('a') || downloadBtn;
-      clickTarget.click();
-      return { success: true, text: `${dateStr} のダウンロードを開始` };
+ const clickResult = await page.evaluate(async (dateStr) => {
+  const dateElement = Array.from(document.querySelectorAll('div, span, p, td'))
+                             .find(e => e.innerText.trim() === dateStr);
+    if (!dateElement) return { success: false, reason: "日付が見つかりません" };
+  const row = dateElement.closest('div[class*="row"], tr, [class*="item"], .css-0');
+    if (!row) return { success: false, reason: "行が見つかりません" };
+  const splitMenu = row.querySelector('[data-testid="split-button-menu"]');
+    if (!splitMenu) return { success: false, reason: "メニューボタンが見つかりません" };
+  const mainBtn = splitMenu.querySelector('button');
+    mainBtn.click();
+  await new Promise(r => setTimeout(r, 1200));
+
+  const menuItems = Array.from(document.querySelectorAll('button, .css-v2z2ni'));
+    const targetMenuItem = menuItems.find(item => item.innerText.includes("1日分をまとめて"));
+  if (targetMenuItem) {
+      targetMenuItem.click();
+      return { success: true, text: `${dateStr} の「1日分をまとめて」を実行しました` };
     }
-   return { success: false, reason: "行の中にダウンロードボタンがありません" };
+  return { success: false, reason: "1日分をまとめて ボタンが見つかりません" };
   }, targetDateStr);
  if (clickResult.success) {
     console.log(`${store} ${clickResult.text}`);
