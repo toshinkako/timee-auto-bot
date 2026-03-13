@@ -69,21 +69,7 @@ await page.goto("https://app-new.taimee.co.jp/dashboard", {
 });
  console.log("ダッシュボードを表示しました");
 await new Promise(r => setTimeout(r, 3000));
- 
-/* // ログイン完了後に追加
-const cookies = await page.cookies();
-console.log(`取得済みクッキー数: ${cookies.length}`);
-if (cookies.length === 0) {
-  console.log("警告: クッキーが保存されていません。ログインに失敗している可能性があります。");
-}
- await page.goto("https://app-new.taimee.co.jp",{
- waitUntil:"networkidle2"
-});
-
- //await page.waitForTimeout(3000);
- await new Promise(r => setTimeout(r, 3000));
- */
- 
+  
 /* 現在時刻 */
 const now = new Date();
 const hour = Number(now.toLocaleTimeString("ja-JP",{
@@ -110,6 +96,7 @@ const time = now.toLocaleTimeString("ja-JP",{timeZone:"Asia/Tokyo",hour:"2-digit
 
 const from=`${yyyy}-${mm}-${dd}T00:00:00+09:00`;
 const to=`${yyyy}-${mm}-${dd}T23:59:59+09:00`;
+const targetDateStr = `${yyyy}年${mm}月${dd}日`;
 
 let message = `【Timee勤務確認】 ${date} ${time}\n`;
 let sendSlack = true;
@@ -131,8 +118,6 @@ for(const CLIENT_ID of CLIENT_IDS){
   
   console.log(`${store} のページを開きました`);
  
-  
- 
  // 2. ダウンロードディレクトリの設定（実行フォルダに保存するように指定）
   const downloadPath = process.cwd();
   const client = await page.target().createCDPSession();
@@ -143,48 +128,6 @@ for(const CLIENT_ID of CLIENT_IDS){
 
  
  // 3. ボタンを探してクリック 
-/*try {
-    console.log(`${store} のダウンロードボタンを探しています...`);
-    
-    // ボタンが現れるまで最大10秒待つ
-    await page.waitForFunction(
-      () => {
-        const elements = Array.from(document.querySelectorAll('button, div, span, a'));
-        return elements.some(e => 
-          (e.innerText.includes("エクセル") || e.innerText.includes("出力") || e.innerText.includes("ダウンロード")) &&
-          e.offsetWidth > 0 && e.offsetHeight > 0
-        );
-      },
-      { timeout: 10000 }
-    ).catch(() => console.log("待機タイムアウト：画面上にボタンが見つかりません"));
-
-    const clicked = await page.evaluate(() => {
-      const elements = Array.from(document.querySelectorAll('button, div, span, a'));
-      const target = elements.find(e => 
-        (e.innerText.includes("エクセル") || e.innerText.includes("出力") || e.innerText.includes("ダウンロード")) && 
-        e.offsetWidth > 0 && e.offsetHeight > 0
-      );
-      if (target) {
-        target.click();
-        return true;
-      }
-      return false;
-    });
-
-  if (clicked) {
-      console.log(`${store} ダウンロードボタンをクリックしました。`);
-      await new Promise(r => setTimeout(r, 8000)); // ダウンロード完了待ち
-    } else {
-      await page.screenshot({ path: `error_${CLIENT_ID}.png` });
-      console.log(`${store} ボタンが見つかりませんでした。スクショを確認してください。`);
-      continue;
-    }
-  } catch (e) {
-    console.log(`${store} 操作中にエラー:`, e.message);
-    continue;
-  }
-*/
- // --- 修正版：ボタン取得ロジック ---
 try {
   console.log(`${store} のデータを読み込み中...`);
   
@@ -195,6 +138,37 @@ try {
   await page.evaluate(() => window.scrollBy(0, 500));
   await new Promise(r => setTimeout(r, 2000));
 
+ console.log(`${store} の ${targetDateStr} のボタンを探しています...`);
+
+  const clickResult = await page.evaluate((dateStr) => {
+    // 1. まず、日付が書いてある要素を探す
+    const allElements = Array.from(document.querySelectorAll('div, span, p, td'));
+    const dateElement = allElements.find(e => e.innerText.trim() === dateStr);
+   if (!dateElement) return { success: false, reason: "日付が見つかりません" };
+   const row = dateElement.closest('div[class*="row"], tr, [class*="item"]'); 
+    if (!row) return { success: false, reason: "行の枠組みが見つかりません" };
+   const buttons = Array.from(row.querySelectorAll('button, a, span'));
+    const downloadBtn = buttons.find(b => 
+      b.innerText.includes("ダウンロード") && !b.innerText.includes("設定")
+    );
+   if (downloadBtn) {
+      const clickTarget = downloadBtn.closest('button') || downloadBtn.closest('a') || downloadBtn;
+      clickTarget.click();
+      return { success: true, text: `${dateStr} のダウンロードを開始` };
+    }
+   return { success: false, reason: "行の中にダウンロードボタンがありません" };
+  }, targetDateStr);
+ if (clickResult.success) {
+    console.log(`${store} ${clickResult.text}`);
+    await new Promise(r => setTimeout(r, 8000)); // DL完了待ち
+  } else {
+    console.log(`${store} スキップ: ${clickResult.reason}`);
+    await page.screenshot({ path: `error_not_found_${CLIENT_ID}.png` });
+    continue;
+  }
+
+
+ /*
   console.log(`${store} のダウンロードボタンを検索中...`);
 
  const clickResult = await page.evaluate(() => {
@@ -235,6 +209,7 @@ try {
     }
     continue;
   }
+  */
 } catch (e) {
   console.log(`${store} 操作中にエラー:`, e.message);
   continue;
