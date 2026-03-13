@@ -34,27 +34,17 @@ let loaded=false;
 for(const url of loginUrls){
 
  try{
-
   await page.goto(url,{waitUntil:"networkidle2"});
-
   await page.waitForSelector("input",{timeout:5000});
-
   console.log("ログインページ:",url);
-
   loaded=true;
-
   break;
-
  }catch(e){}
-
 }
 
 if(!loaded){
-
  throw new Error("ログインページ取得失敗");
-
 }
-
 
 await page.type(
  'input[type="email"], input[name*="email"], input[placeholder*="メール"]',
@@ -72,7 +62,13 @@ await Promise.all([
 ]);
 
 console.log("ログイン成功");
-await page.goto("https://app-new.taimee.co.jp",{
+// ログイン完了後に追加
+const cookies = await page.cookies();
+console.log(`取得済みクッキー数: ${cookies.length}`);
+if (cookies.length === 0) {
+  console.log("警告: クッキーが保存されていません。ログインに失敗している可能性があります。");
+}
+ await page.goto("https://app-new.taimee.co.jp",{
  waitUntil:"networkidle2"
 });
 
@@ -109,21 +105,17 @@ let message = `【Timee勤務確認】 ${date} ${time}\n`;
 let sendSlack = true;
 
 /* 店舗ループ */
-
+await page.goto("https://api-app-new.taimee.co.jp/app/api/v1/health_check").catch(() => {});
 for(const CLIENT_ID of CLIENT_IDS){
 
  const store = STORE_NAMES[CLIENT_ID];
 
  await new Promise(r => setTimeout(r, 2000));
  const apiUrl = `https://api-app-new.taimee.co.jp/app/api/v1/clients/${CLIENT_ID}/attending_worker_lists/workers.xlsx?start_at_from=${encodeURIComponent(from)}&start_at_to=${encodeURIComponent(to)}`;
-//const apiUrl =
-//`https://app-new.taimee.co.jp/app/api/v1/clients/${CLIENT_ID}/attending_worker_lists/workers.xlsx?start_at_from=${encodeURIComponent(from)}&start_at_to=${encodeURIComponent(to)}`;
- let res;
+  let res;
 try {
-    await page.setExtraHTTPHeaders({
-      'Referer': 'https://app-new.taimee.co.jp/'
-    });
-    
+    await page.goto(`https://app-new.taimee.co.jp/clients/${CLIENT_ID}/attending_workers`, { waitUntil: "networkidle2" });
+    await new Promise(r => setTimeout(r, 2000)); // 2秒待機 
     res = await page.goto(apiUrl, { waitUntil: "networkidle2" });
   } catch (e) {
     console.log(`${store} 通信エラー:`, e.message);
