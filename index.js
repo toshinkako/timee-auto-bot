@@ -112,7 +112,6 @@ for(const CLIENT_ID of CLIENT_IDS){
  const apiUrl =
 `https://api-app-new.taimee.co.jp/app/api/v1/clients/${CLIENT_ID}/attending_worker_lists/workers.xlsx?start_at_from=${encodeURIComponent(from)}&start_at_to=${encodeURIComponent(to)}`;
 
-const res = await page.goto(apiUrl,{waitUntil:"networkidle2"});
 let res;
 
 for(let i=0;i<3;i++){
@@ -120,6 +119,10 @@ for(let i=0;i<3;i++){
   res = await page.goto(apiUrl,{waitUntil:"networkidle2"});
   if(res && res.ok()) break;
  }catch(e){}
+}
+if(!res){
+ console.log(`${store} API取得失敗`);
+ continue;
 }
  
  const buffer = await res.buffer();
@@ -155,13 +158,15 @@ const staff = data.map(row=>{
  row["名前"]||
  row["Name"];
 
- const start =
+ onst start =
  row["勤務開始"]||
- row["開始時間"];
-
- const end =
+ row["開始時間"]||
+ row["開始"];
+ 
+const end =
  row["勤務終了"]||
- row["終了時間"];
+ row["終了時間"]||
+ row["終了"];
 
  if(!name) return null;
 
