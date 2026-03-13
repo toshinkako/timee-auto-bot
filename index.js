@@ -121,7 +121,6 @@ let res;
 for(let i=0;i<3;i++){
  try{
   res = await page.goto(apiUrl,{waitUntil:"networkidle2"});
-  console.log(res);
   if(res && res.ok()) break;
  }catch(e){console.log(e)}
 }
@@ -161,7 +160,7 @@ if(!workbook.SheetNames || workbook.SheetNames.length===0){
 const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
 const data = XLSX.utils.sheet_to_json(sheet,{header:1});
-console.log(data.length)
+console.log(data)
 
 /* スタッフ */
 
