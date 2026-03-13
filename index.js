@@ -72,7 +72,8 @@ if (cookies.length === 0) {
  waitUntil:"networkidle2"
 });
 
- await page.waitForTimeout(3000);
+ //await page.waitForTimeout(3000);
+ await new Promise(r => setTimeout(r, 3000));
  
 /* 現在時刻 */
 const now = new Date();
@@ -107,9 +108,65 @@ let sendSlack = true;
 /* 店舗ループ */
 await page.goto("https://api-app-new.taimee.co.jp/app/api/v1/health_check").catch(() => {});
 for(const CLIENT_ID of CLIENT_IDS){
-
  const store = STORE_NAMES[CLIENT_ID];
+// 1. まずその店舗の「稼働中 / 勤務予定」ページに移動する
+  const dashboardUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/attending_worker_lists`;
+  await page.goto(dashboardUrl, { waitUntil: "networkidle2" });
+  console.log(`${store} のページを開きました`);
+// 2. ダウンロードディレクトリの設定（実行フォルダに保存するように指定）
+  const downloadPath = process.cwd();
+  const client = await page.target().createCDPSession();
+  await client.send('Page.setDownloadBehavior', {
+    behavior: 'allow',
+    downloadPath: downloadPath,
+  });
+// 3. 「エクセルダウンロード」ボタンを探してクリックする
+  // Timeeの画面上の「エクセル出力」や「ダウンロード」ボタンのテキストに合わせて調整
+  try {
+    const downloadButtonSelector = 'button'; // 必要に応じてより具体的なセレクタに
+    const buttons = await page.$$(downloadButtonSelector);
+    let targetButton = null;
 
+    for (const btn of buttons) {
+      const text = await page.evaluate(el => el.innerText, btn);
+      if (text.includes("エクセル") || text.includes("ダウンロード") || text.includes("出力")) {
+        targetButton = btn;
+        break;
+      }
+    }
+
+    if (targetButton) {
+      await targetButton.click();
+      console.log(`${store} ダウンロード開始...`);
+      // ダウンロード完了まで少し待機
+      await new Promise(r => setTimeout(r, 5000));
+    } else {
+      console.log(`${store} ダウンロードボタンが見つかりません`);
+      continue;
+    }
+  } catch (e) {
+    console.log(`${store} クリック失敗:`, e.message);
+    continue;
+  } 
+// 4. ファイル名の特定と処理
+  // ブラウザがデフォルト名で保存するため、最新のxlsxファイルを探す処理が必要
+  const files = fs.readdirSync(downloadPath);
+  const latestFile = files
+    .filter(f => f.endsWith('.xlsx'))
+    .map(f => ({ name: f, time: fs.statSync(f).mtime.getTime() }))
+    .sort((a, b) => b.time - a.time)[0]?.name;
+
+  if (!latestFile) {
+    console.log(`${store} ファイルが見つかりません`);
+    continue;
+  }
+const tempPath = latestFile; // ブラウザが保存したファイル名
+const filePath = `timee_${CLIENT_ID}_${yyyy}${mm}${dd}.xlsx`;
+// 修正：bufferを書くのではなく、ダウンロードされたファイルをリネーム（移動）する
+fs.renameSync(tempPath, filePath);
+console.log("Excel保存（リネーム）:", filePath);
+ 
+ /*
  await new Promise(r => setTimeout(r, 2000));
  const apiUrl = `https://api-app-new.taimee.co.jp/app/api/v1/clients/${CLIENT_ID}/attending_worker_lists/workers.xlsx?start_at_from=${encodeURIComponent(from)}&start_at_to=${encodeURIComponent(to)}`;
   let res;
@@ -120,6 +177,7 @@ try {
   } catch (e) {
     console.log(`${store} 通信エラー:`, e.message);
   }
+*/
 /*
  for(let i=0;i<3;i++){
  try{
@@ -136,6 +194,7 @@ try {
  }catch(e){console.log(e)}
 }
 */
+/*
  //if(!res){
 if(!res || !res.ok()){
  console.log(`${store} API取得失敗 (Status: ${res ? res.status() : 'No Response'})`);
@@ -145,7 +204,7 @@ if(!res || !res.ok()){
  
  const buffer = await res.buffer();
 
- /* HTML誤取得対策（ログインページ対策） */
+ // HTML誤取得対策（ログインページ対策） 
 const textCheck = buffer.toString("utf8",0,200).toLowerCase();
 if (textCheck.includes("error") || textCheck.includes("認証")) {
     console.log(`${store} 認証エラーが発生しました。メッセージ:`, textCheck);
@@ -156,38 +215,46 @@ if(textCheck.includes("<!doctype") || textCheck.includes("<html")){
  console.log(`${store} HTML取得（セッション切れの可能性）`);
  continue;
 }
- 
+
+*/
  const filePath=`timee_${CLIENT_ID}_${yyyy}${mm}${dd}.xlsx`;
 
- fs.writeFileSync(filePath,buffer);
+ //fs.writeFileSync(filePath,buffer);
 
  console.log("Excel保存:",filePath);
 
 /* Excel解析 */
-
 const workbook = XLSX.readFile(filePath);
-if(!workbook.SheetNames || workbook.SheetNames.length===0){
+ if(!workbook.SheetNames || workbook.SheetNames.length===0){
  console.log(`${store} シートなし`);
-
  if(MODE==="morning"){
   await writeSheet(date,time,store,0,"","");
  }
-
  continue;
 }
 const sheet = workbook.Sheets[workbook.SheetNames[0]];
+const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-const data = XLSX.utils.sheet_to_json(sheet,{header:1});
-console.log('data:\n'+data)
+ console.log('data:\n'+rawData)
 
 /* スタッフ */
+ const staff = rawData.slice(1).map(row => {
+  // row[1] = 氏名, row[4] = 開始, row[5] = 終了 (インデックスが正しいか要確認)
+  const name = row[1];
+  const start = row[4];
+  const end = row[5];
 
+  if (!name || name === "氏名") return null; // ヘッダー混入対策
+
+  return { name, start, end };
+}).filter(Boolean);
+/* 
 const staff = data.map(row=>{
 
  const name = row[1];
  const start = row[4];
  const end = row[5];
- /*
+ 
  let name =
  row["氏名"]||
  row["名前"]||
@@ -206,7 +273,7 @@ let end =
  row["終了時間"]||
  row["終了"];
 if(!end) { end = row[5];};
-*/
+
  if(!name) return null;
 
  return {
@@ -216,7 +283,7 @@ if(!end) { end = row[5];};
  };
 
 }).filter(Boolean);
-
+*/
 const count = staff.length;
 /* 募集なし判定（朝のみ） */
 
