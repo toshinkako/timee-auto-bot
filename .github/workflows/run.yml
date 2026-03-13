@@ -43,6 +43,14 @@ jobs:
           SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
           GOOGLE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SERVICE_ACCOUNT }}
 
+      - name: Upload screenshots on failure
+        uses: actions/upload-artifact@v4
+        if: always() # エラーが起きても起きなくても必ず実行
+        with:
+          name: debug-screenshots
+          path: error_*.png
+          retention-days: 5 # 5日間保存
+
       - name: Upload Excel
         uses: actions/upload-artifact@v4
         with:
