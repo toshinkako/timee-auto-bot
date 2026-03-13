@@ -154,27 +154,31 @@ if(!workbook.SheetNames || workbook.SheetNames.length===0){
 }
 const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
-const data = XLSX.utils.sheet_to_json(sheet);
+const rows = XLSX.utils.sheet_to_json(sheet,{header:1});
+console.log(rows.length)
 
 /* スタッフ */
 
 const staff = data.map(row=>{
 
- const name =
+ let name =
  row["氏名"]||
  row["名前"]||
  row["Name"]||
  row["ワーカー名"];
+if(!name) { name = row[1];};
 
- const start =
+let start =
  row["勤務開始"]||
  row["開始時間"]||
  row["開始"];
+if(!start) { start = row[4];};
  
-const end =
+let end =
  row["勤務終了"]||
  row["終了時間"]||
  row["終了"];
+if(!end) { end = row[5];};
 
  if(!name) return null;
 
