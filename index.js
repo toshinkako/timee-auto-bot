@@ -72,7 +72,11 @@ await Promise.all([
 ]);
 
 console.log("ログイン成功");
-
+await page.goto("https://app.taimee.co.jp/client/attending_worker_lists",{
+ waitUntil:"networkidle2"
+});
+await page.waitForTimeout(3000);
+ 
 /* 現在時刻 */
 const now = new Date();
 const hour = Number(now.toLocaleTimeString("ja-JP",{
