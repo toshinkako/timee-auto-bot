@@ -122,8 +122,9 @@ for(const CLIENT_ID of CLIENT_IDS){
     downloadPath: downloadPath,
   });
 
+ 
  // 3. ボタンを探してクリック 
-try {
+/*try {
     console.log(`${store} のダウンロードボタンを探しています...`);
     
     // ボタンが現れるまで最大10秒待つ
@@ -163,7 +164,64 @@ try {
     console.log(`${store} 操作中にエラー:`, e.message);
     continue;
   }
+*/
+ // --- 修正版：ボタン取得ロジック ---
+try {
+  console.log(`${store} のデータを読み込み中...`);
+  
+  // ページ内のリスト（テーブルなど）が表示されるのを待つ
+  await page.waitForSelector('main, table, [class*="list"]', { timeout: 15000 }).catch(() => {});
+  
+  // 少しスクロールして要素を読み込ませる
+  await page.evaluate(() => window.scrollBy(0, 500));
+  await new Promise(r => setTimeout(r, 2000));
 
+  console.log(`${store} のダウンロードボタンを検索中...`);
+  
+  const clickResult = await page.evaluate(() => {
+    // 全ての要素を走査
+    const allElements = Array.from(document.querySelectorAll('button, a, div[role="button"], span'));
+    
+    // 「エクセル」「出力」「ダウンロード」「CSV」などのキーワードで探す
+    const target = allElements.find(e => {
+      const text = e.innerText || "";
+      return (text.includes("エクセル") || text.includes("出力") || text.includes("ダウンロード")) 
+             && e.offsetWidth > 0 
+             && e.offsetHeight > 0;
+    });
+
+    if (target) {
+      target.click();
+      return { success: true, text: target.innerText };
+    }
+    
+    // 見つからない場合、デバッグ用に今のボタンっぽい要素のテキストをいくつか返す
+    const fallback = allElements.slice(0, 10).map(e => e.innerText.trim()).filter(t => t.length > 0);
+    return { success: false, foundTexts: fallback };
+  });
+
+  if (clickResult.success) {
+    console.log(`${store} ボタン「${clickResult.text}」をクリックしました`);
+    await new Promise(r => setTimeout(r, 8000)); // DL完了待ち
+  } else {
+    console.log(`${store} 候補テキスト:`, clickResult.foundTexts);
+    await page.screenshot({ path: `error_${CLIENT_ID}.png`, fullPage: true });
+    console.log(`${store} ボタン特定失敗。スクショを保存しました。`);
+    
+    // スタッフが0人の場合にボタンが消える仕様か確認
+    const isNoWorker = await page.evaluate(() => document.body.innerText.includes("勤務予定のワーカーはいません"));
+    if (isNoWorker) {
+      console.log(`${store} ワーカーが0人のため、募集なしとして処理します`);
+      if (MODE === "morning") {
+        await writeSheet(date, time, store, 0, "", "");
+      }
+    }
+    continue;
+  }
+} catch (e) {
+  console.log(`${store} 操作中にエラー:`, e.message);
+  continue;
+}
 // 4. ファイル名の特定と処理
   // ブラウザがデフォルト名で保存するため、最新のxlsxファイルを探す処理が必要
   const files = fs.readdirSync(downloadPath);
