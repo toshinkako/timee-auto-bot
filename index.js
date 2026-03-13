@@ -117,7 +117,8 @@ let sendSlack = true;
 /* 店舗ループ */
 for(const CLIENT_ID of CLIENT_IDS){
  const store = STORE_NAMES[CLIENT_ID];
- const dashboardUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/attending_worker_lists`;
+ //const dashboardUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/attending_worker_lists`;
+ const dashboardUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/users/attendings`;
  // ページ移動
   console.log(`${store} への遷移を開始します...`);
   await page.goto(dashboardUrl, { waitUntil: "networkidle2" });
@@ -195,26 +196,23 @@ try {
   await new Promise(r => setTimeout(r, 2000));
 
   console.log(`${store} のダウンロードボタンを検索中...`);
-  
-  const clickResult = await page.evaluate(() => {
-    // 全ての要素を走査
-    const allElements = Array.from(document.querySelectorAll('button, a, div[role="button"], span'));
-    
-    // 「エクセル」「出力」「ダウンロード」「CSV」などのキーワードで探す
-    const target = allElements.find(e => {
-      const text = e.innerText || "";
-      return (text.includes("エクセル") || text.includes("出力") || text.includes("ダウンロード")) 
-             && e.offsetWidth > 0 
-             && e.offsetHeight > 0;
-    });
 
-    if (target) {
-      target.click();
-      return { success: true, text: target.innerText };
-    }
-    
+  const clickResult = await page.evaluate(() => {
+  // button, a, span, div などから「ダウンロード」「エクセル」「出力」を探す
+  const elements = Array.from(document.querySelectorAll('button, a, span, div[role="button"]'));
+  const target = elements.find(e => {
+    const text = e.innerText || "";
+    return (text.includes("ダウンロード") || text.includes("エクセル") || text.includes("出力")) 
+           && e.offsetWidth > 0 
+           && e.offsetHeight > 0;
+  });    
+   if (target) {
+    const clickTarget = target.closest('button') || target.closest('a') || target;
+    clickTarget.click();
+    return { success: true, text: target.innerText };
+  }
     // 見つからない場合、デバッグ用に今のボタンっぽい要素のテキストをいくつか返す
-    const fallback = allElements.slice(0, 10).map(e => e.innerText.trim()).filter(t => t.length > 0);
+    const fallback = elements.slice(0, 10).map(e => e.innerText.trim()).filter(t => t.length > 0);
     return { success: false, foundTexts: fallback };
   });
 
