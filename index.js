@@ -121,6 +121,7 @@ let res;
 for(let i=0;i<3;i++){
  try{
   res = await page.goto(apiUrl,{waitUntil:"networkidle2"});
+  console.log(res);
   if(res && res.ok()) break;
  }catch(e){console.log(e)}
 }
@@ -166,6 +167,10 @@ console.log(rows.length)
 
 const staff = data.map(row=>{
 
+ const name = row[1];
+ const start = row[4];
+ const end = row[5];
+ /*
  let name =
  row["氏名"]||
  row["名前"]||
@@ -184,7 +189,7 @@ let end =
  row["終了時間"]||
  row["終了"];
 if(!end) { end = row[5];};
-
+*/
  if(!name) return null;
 
  return {
