@@ -155,7 +155,7 @@ for(const CLIENT_ID of CLIENT_IDS){
     .filter(f => f.endsWith('.xlsx'))
     .map(f => ({ name: f, time: fs.statSync(f).mtime.getTime() }))
     .sort((a, b) => b.time - a.time)[0]?.name;
-
+ 
   if (!latestFile) {
     console.log(`${store} ファイルが見つかりません`);
     continue;
@@ -163,65 +163,9 @@ for(const CLIENT_ID of CLIENT_IDS){
 const tempPath = latestFile; // ブラウザが保存したファイル名
 const filePath = `timee_${CLIENT_ID}_${yyyy}${mm}${dd}.xlsx`;
 // 修正：bufferを書くのではなく、ダウンロードされたファイルをリネーム（移動）する
-fs.renameSync(tempPath, filePath);
-console.log("Excel保存（リネーム）:", filePath);
- 
- /*
- await new Promise(r => setTimeout(r, 2000));
- const apiUrl = `https://api-app-new.taimee.co.jp/app/api/v1/clients/${CLIENT_ID}/attending_worker_lists/workers.xlsx?start_at_from=${encodeURIComponent(from)}&start_at_to=${encodeURIComponent(to)}`;
-  let res;
-try {
-    await page.goto(`https://app-new.taimee.co.jp/clients/${CLIENT_ID}/attending_workers`, { waitUntil: "networkidle2" });
-    await new Promise(r => setTimeout(r, 2000)); // 2秒待機 
-    res = await page.goto(apiUrl, { waitUntil: "networkidle2" });
-  } catch (e) {
-    console.log(`${store} 通信エラー:`, e.message);
-  }
-*/
-/*
- for(let i=0;i<3;i++){
- try{
-  res = await page.evaluate(async(url)=>{
-   const r = await fetch(url,{credentials:"include"});
-   const buf = await r.arrayBuffer();
-   return Array.from(new Uint8Array(buf));
-  },apiUrl);
-
-  if(res) break;
-
-  res = await page.goto(apiUrl,{waitUntil:"networkidle2"});
-  if(res && res.ok()) break;
- }catch(e){console.log(e)}
-}
-*/
-/*
- //if(!res){
-if(!res || !res.ok()){
- console.log(`${store} API取得失敗 (Status: ${res ? res.status() : 'No Response'})`);
-// console.log(`${store} API取得失敗`);
- continue;
-}
- 
- const buffer = await res.buffer();
-
- // HTML誤取得対策（ログインページ対策） 
-const textCheck = buffer.toString("utf8",0,200).toLowerCase();
-if (textCheck.includes("error") || textCheck.includes("認証")) {
-    console.log(`${store} 認証エラーが発生しました。メッセージ:`, textCheck);
-    continue; 
-  }
- 
-if(textCheck.includes("<!doctype") || textCheck.includes("<html")){
- console.log(`${store} HTML取得（セッション切れの可能性）`);
- continue;
-}
-
-*/
- const filePath=`timee_${CLIENT_ID}_${yyyy}${mm}${dd}.xlsx`;
-
- //fs.writeFileSync(filePath,buffer);
-
- console.log("Excel保存:",filePath);
+if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+ fs.renameSync(tempPath, filePath);
+ console.log("Excel保存完了:", filePath);
 
 /* Excel解析 */
 const workbook = XLSX.readFile(filePath);
@@ -248,49 +192,11 @@ const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
   return { name, start, end };
 }).filter(Boolean);
-/* 
-const staff = data.map(row=>{
-
- const name = row[1];
- const start = row[4];
- const end = row[5];
- 
- let name =
- row["氏名"]||
- row["名前"]||
- row["Name"]||
- row["ワーカー名"];
-if(!name) { name = row[1];};
-
-let start =
- row["勤務開始"]||
- row["開始時間"]||
- row["開始"];
-if(!start) { start = row[4];};
- 
-let end =
- row["勤務終了"]||
- row["終了時間"]||
- row["終了"];
-if(!end) { end = row[5];};
-
- if(!name) return null;
-
- return {
-  name,
-  start,
-  end
- };
-
-}).filter(Boolean);
-*/
 const count = staff.length;
 /* 募集なし判定（朝のみ） */
 
 if(MODE==="morning" && count===0){
-
  message += `${store}\n募集なし\n`;
-
  await writeSheet(
   date,
   time,
