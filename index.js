@@ -111,43 +111,59 @@ for(const CLIENT_ID of CLIENT_IDS){
  const store = STORE_NAMES[CLIENT_ID];
 // 1. まずその店舗の「稼働中 / 勤務予定」ページに移動する
   const dashboardUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/attending_worker_lists`;
-  await page.goto(dashboardUrl, { waitUntil: "networkidle2" });
+ await page.goto(dashboardUrl, { waitUntil: "networkidle2" });
   console.log(`${store} のページを開きました`);
-// 2. ダウンロードディレクトリの設定（実行フォルダに保存するように指定）
+ 
+ // 2. ダウンロードディレクトリの設定（実行フォルダに保存するように指定）
   const downloadPath = process.cwd();
   const client = await page.target().createCDPSession();
   await client.send('Page.setDownloadBehavior', {
     behavior: 'allow',
     downloadPath: downloadPath,
   });
-// 3. 「エクセルダウンロード」ボタンを探してクリックする
-  // Timeeの画面上の「エクセル出力」や「ダウンロード」ボタンのテキストに合わせて調整
-  try {
-    const downloadButtonSelector = 'button'; // 必要に応じてより具体的なセレクタに
-    const buttons = await page.$$(downloadButtonSelector);
-    let targetButton = null;
 
-    for (const btn of buttons) {
-      const text = await page.evaluate(el => el.innerText, btn);
-      if (text.includes("エクセル") || text.includes("ダウンロード") || text.includes("出力")) {
-        targetButton = btn;
-        break;
+ // 3. ボタンを探してクリック 
+try {
+    console.log(`${store} のダウンロードボタンを探しています...`);
+    
+    // ボタンが現れるまで最大10秒待つ
+    await page.waitForFunction(
+      () => {
+        const elements = Array.from(document.querySelectorAll('button, div, span, a'));
+        return elements.some(e => 
+          (e.innerText.includes("エクセル") || e.innerText.includes("出力") || e.innerText.includes("ダウンロード")) &&
+          e.offsetWidth > 0 && e.offsetHeight > 0
+        );
+      },
+      { timeout: 10000 }
+    ).catch(() => console.log("待機タイムアウト：画面上にボタンが見つかりません"));
+
+    const clicked = await page.evaluate(() => {
+      const elements = Array.from(document.querySelectorAll('button, div, span, a'));
+      const target = elements.find(e => 
+        (e.innerText.includes("エクセル") || e.innerText.includes("出力") || e.innerText.includes("ダウンロード")) && 
+        e.offsetWidth > 0 && e.offsetHeight > 0
+      );
+      if (target) {
+        target.click();
+        return true;
       }
-    }
+      return false;
+    });
 
-    if (targetButton) {
-      await targetButton.click();
-      console.log(`${store} ダウンロード開始...`);
-      // ダウンロード完了まで少し待機
-      await new Promise(r => setTimeout(r, 5000));
+  if (clicked) {
+      console.log(`${store} ダウンロードボタンをクリックしました。`);
+      await new Promise(r => setTimeout(r, 8000)); // ダウンロード完了待ち
     } else {
-      console.log(`${store} ダウンロードボタンが見つかりません`);
+      await page.screenshot({ path: `error_${CLIENT_ID}.png` });
+      console.log(`${store} ボタンが見つかりませんでした。スクショを確認してください。`);
       continue;
     }
   } catch (e) {
-    console.log(`${store} クリック失敗:`, e.message);
+    console.log(`${store} 操作中にエラー:`, e.message);
     continue;
-  } 
+  }
+
 // 4. ファイル名の特定と処理
   // ブラウザがデフォルト名で保存するため、最新のxlsxファイルを探す処理が必要
   const files = fs.readdirSync(downloadPath);
