@@ -334,7 +334,7 @@ async function writeSheet(date,time,store,count,staff,total){
 
   spreadsheetId:process.env.SPREADSHEET_ID,
 
-  range:"Sheet1!A:G",
+  range:"Sheet1!A1",
 
   valueInputOption:"USER_ENTERED",
 
