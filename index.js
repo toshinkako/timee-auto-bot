@@ -114,9 +114,10 @@ for(const CLIENT_ID of CLIENT_IDS){
 
  const store = STORE_NAMES[CLIENT_ID];
 
- const apiUrl =
-`https://api-app-new.taimee.co.jp/app/api/v1/clients/${CLIENT_ID}/attending_worker_lists/workers.xlsx?start_at_from=${encodeURIComponent(from)}&start_at_to=${encodeURIComponent(to)}`;
-
+// const apiUrl =
+//`https://api-app-new.taimee.co.jp/app/api/v1/clients/${CLIENT_ID}/attending_worker_lists/workers.xlsx?start_at_from=${encodeURIComponent(from)}&start_at_to=${encodeURIComponent(to)}`;
+const apiUrl =
+`https://app-new.taimee.co.jp/app/api/v1/clients/${CLIENT_ID}/attending_worker_lists/workers.xlsx?start_at_from=${encodeURIComponent(from)}&start_at_to=${encodeURIComponent(to)}`;
  let res;
 
 for(let i=0;i<3;i++){
