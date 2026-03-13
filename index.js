@@ -161,7 +161,7 @@ if(!workbook.SheetNames || workbook.SheetNames.length===0){
 const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
 const data = XLSX.utils.sheet_to_json(sheet,{header:1});
-console.log(rows.length)
+console.log(data.length)
 
 /* スタッフ */
 
