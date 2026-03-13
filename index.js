@@ -197,20 +197,21 @@ try {
 
   console.log(`${store} のダウンロードボタンを検索中...`);
 
-  const clickResult = await page.evaluate(() => {
-  // button, a, span, div などから「ダウンロード」「エクセル」「出力」を探す
-  const elements = Array.from(document.querySelectorAll('button, a, span, div[role="button"]'));
-  const target = elements.find(e => {
-    const text = e.innerText || "";
-    return (text.includes("ダウンロード") || text.includes("エクセル") || text.includes("出力")) 
-           && e.offsetWidth > 0 
-           && e.offsetHeight > 0;
-  });    
+ const clickResult = await page.evaluate(() => {
+    // 全てのボタン・リンク・スパンを取得
+    const elements = Array.from(document.querySelectorAll('button, a, span, div[role="button"]'));
+   const target = elements.find(e => {
+      const text = e.innerText || "";
+      return text.includes("ダウンロード") 
+             && !text.includes("設定") // 「ダウンロード項目の設定」を除外
+             && e.offsetWidth > 0 
+             && e.offsetHeight > 0;
+    });
    if (target) {
-    const clickTarget = target.closest('button') || target.closest('a') || target;
-    clickTarget.click();
-    return { success: true, text: target.innerText };
-  }
+      const clickTarget = target.closest('button') || target.closest('a') || target;
+      clickTarget.click();
+      return { success: true, text: target.innerText.replace(/\n/g, " ") };
+    }
     // 見つからない場合、デバッグ用に今のボタンっぽい要素のテキストをいくつか返す
     const fallback = elements.slice(0, 10).map(e => e.innerText.trim()).filter(t => t.length > 0);
     return { success: false, foundTexts: fallback };
