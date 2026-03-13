@@ -62,7 +62,15 @@ await Promise.all([
 ]);
 
 console.log("ログイン成功");
-// ログイン完了後に追加
+
+ // ログイン直後に、まず新ドメインのトップへ移動
+await page.goto("https://app-new.taimee.co.jp/dashboard", {
+  waitUntil: "networkidle2"
+});
+ console.log("ダッシュボードを表示しました");
+await new Promise(r => setTimeout(r, 3000));
+ 
+/* // ログイン完了後に追加
 const cookies = await page.cookies();
 console.log(`取得済みクッキー数: ${cookies.length}`);
 if (cookies.length === 0) {
@@ -74,6 +82,7 @@ if (cookies.length === 0) {
 
  //await page.waitForTimeout(3000);
  await new Promise(r => setTimeout(r, 3000));
+ */
  
 /* 現在時刻 */
 const now = new Date();
@@ -106,13 +115,22 @@ let message = `【Timee勤務確認】 ${date} ${time}\n`;
 let sendSlack = true;
 
 /* 店舗ループ */
-await page.goto("https://api-app-new.taimee.co.jp/app/api/v1/health_check").catch(() => {});
 for(const CLIENT_ID of CLIENT_IDS){
  const store = STORE_NAMES[CLIENT_ID];
-// 1. まずその店舗の「稼働中 / 勤務予定」ページに移動する
-  const dashboardUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/attending_worker_lists`;
- await page.goto(dashboardUrl, { waitUntil: "networkidle2" });
+ const dashboardUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/attending_worker_lists`;
+ // ページ移動
+  console.log(`${store} への遷移を開始します...`);
+  await page.goto(dashboardUrl, { waitUntil: "networkidle2" });
+ const isLoggedOut = await page.evaluate(() => document.body.innerText.includes("ログイン"));
+  if (isLoggedOut) {
+    console.log(`${store} セッション切れの疑い。リロードします。`);
+    await page.reload({ waitUntil: "networkidle2" });
+    await new Promise(r => setTimeout(r, 3000));
+  }
+  
   console.log(`${store} のページを開きました`);
+ 
+  
  
  // 2. ダウンロードディレクトリの設定（実行フォルダに保存するように指定）
   const downloadPath = process.cwd();
