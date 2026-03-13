@@ -168,50 +168,6 @@ try {
     await page.screenshot({ path: `error_not_found_${CLIENT_ID}.png` });
     continue;
   }
-
-
- /*
-  console.log(`${store} のダウンロードボタンを検索中...`);
-
- const clickResult = await page.evaluate(() => {
-    // 全てのボタン・リンク・スパンを取得
-    const elements = Array.from(document.querySelectorAll('button, a, span, div[role="button"]'));
-   const target = elements.find(e => {
-      const text = e.innerText || "";
-      return text.includes("ダウンロード") 
-             && !text.includes("設定") // 「ダウンロード項目の設定」を除外
-             && e.offsetWidth > 0 
-             && e.offsetHeight > 0;
-    });
-   if (target) {
-      const clickTarget = target.closest('button') || target.closest('a') || target;
-      clickTarget.click();
-      return { success: true, text: target.innerText.replace(/\n/g, " ") };
-    }
-    // 見つからない場合、デバッグ用に今のボタンっぽい要素のテキストをいくつか返す
-    const fallback = elements.slice(0, 10).map(e => e.innerText.trim()).filter(t => t.length > 0);
-    return { success: false, foundTexts: fallback };
-  });
-
-  if (clickResult.success) {
-    console.log(`${store} ボタン「${clickResult.text}」をクリックしました`);
-    await new Promise(r => setTimeout(r, 8000)); // DL完了待ち
-  } else {
-    console.log(`${store} 候補テキスト:`, clickResult.foundTexts);
-    await page.screenshot({ path: `error_${CLIENT_ID}.png`, fullPage: true });
-    console.log(`${store} ボタン特定失敗。スクショを保存しました。`);
-    
-    // スタッフが0人の場合にボタンが消える仕様か確認
-    const isNoWorker = await page.evaluate(() => document.body.innerText.includes("勤務予定のワーカーはいません"));
-    if (isNoWorker) {
-      console.log(`${store} ワーカーが0人のため、募集なしとして処理します`);
-      if (MODE === "morning") {
-        await writeSheet(date, time, store, 0, "", "");
-      }
-    }
-    continue;
-  }
-  */
 } catch (e) {
   console.log(`${store} 操作中にエラー:`, e.message);
   continue;
@@ -255,7 +211,6 @@ const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
   const name = row[1];
   const start = row[4];
   const end = row[5];
-
   if (!name || name === "氏名") return null; // ヘッダー混入対策
 
   return { name, start, end };
@@ -281,7 +236,6 @@ if(MODE==="morning" && count===0){
 /* Slack表示 */
 
 message += `
-
 ${store}
 人数:${count}
 `;
@@ -291,31 +245,64 @@ staff.forEach(s=>{
 });
 
 /* 勤務終了判定 -> 勤務中なら終了（15:30チェック） */
+const isWorkingNow = staff.some(s => {
+  if (!s.end) return false;
+  const [h, m] = s.end.split(':');
+  const endTime = new Date();
+  endTime.setHours(h, m, 0);
+  return now < endTime; // 現在時刻が予定終了時刻より前なら「就業中」
+});
+ if (MODE === "workcheck" && isWorkingNow) {
+  sendSlack = false;
+  console.log(`${store} 勤務中あり → スキップ``);
+  continue;
+}
 
-const allFinished = staff.every(s => s.end);
-
+if (MODE === "workcheck") {
+  if (isWorkingNow) {
+    console.log(`${store} 勤務中。スキップ`);
+    sendSlack = false;
+    continue;
+  } else {
+    console.log(`${store} 全員の退勤を確認しました。サマリーを作成します。`);
+  }
+}
+ 
+/*const allFinished = staff.every(s => s.end);
 if(MODE==="workcheck" && !allFinished){
  sendSlack = false;
  console.log(`${store} 勤務中あり → スキップ`);
-
  continue;
-
-}
+}*/
   
 /* 勤務時間計算 */
+let totalHours = "0.00";
+let summaryStr = "";
 
-let totalHours="";
+if (staff.length > 0) {
+  let totalNum = 0;
+  const summaryMap = {};
 
-if(allFinished){
-
- totalHours=calcTotalWork(staff);
-
- message += `合計勤務時間:${totalHours}時間\n`;
-
+  staff.forEach(s => {
+    const hours = calcIndividualWork(s);
+    totalNum += parseFloat(hours);
+   summaryMap[hours] = (summaryMap[hours] || 0) + 1;
+  });
+  totalHours = totalNum.toFixed(2);
+  summaryStr = Object.entries(summaryMap)
+    .map(([hours, count]) => `${hours}時間x${count}人`)
+    .join(", ");
+  message += `合計勤務時間:${totalHours}時間\n`;
+  message += `内訳:${summaryStr}\n`;
 }
 
+/*
+if(allFinished){
+ totalHours=calcTotalWork(staff);
+ message += `合計勤務時間:${totalHours}時間\n`;
+}
+*/
 /* Sheets記録 */
-
 await writeSheet(
  date,
  time,
@@ -323,6 +310,8 @@ await writeSheet(
  count,
  staff.map(s=>s.name).join(","),
  totalHours
+ vacancy,    // F列: 募集残
+ summaryStr  // H列: 勤務時間サマリー
 );
 
 }
@@ -349,30 +338,36 @@ await browser.close();
 })();
 
 /* 勤務時間計算 */
+// 一人あたりの勤務時間を計算する関数
+function calcIndividualWork(s) {
+  if (!s.start || !s.end) return "0.00";
+  const start = roundUp(new Date(`1970-01-01T${s.start}:00`));
+  const end = roundDown(new Date(`1970-01-01T${s.end}:00`));
+  let hours = (end - start) / 1000 / 60 / 60;
+  // 3.5時間超えは1時間休憩控除（貴社の現行ルールを適用）
+  if (hours > 3.5) {
+    hours -= 1;
+  }
+  return hours.toFixed(2);
+}
 
+
+/*
 function calcTotalWork(staff){
-
  let total=0;
-
  staff.forEach(s=>{
-
   if(!s.start||!s.end) return;
-
   const start=roundUp(new Date(`1970-01-01T${s.start}:00`));
   const end=roundDown(new Date(`1970-01-01T${s.end}:00`));
-
   let hours=(end-start)/1000/60/60;
-
   if(hours>3.5){
    hours-=1;
   }
   total+=hours;
-
  });
-
  return total.toFixed(2);
 }
-
+*/
 function roundUp(date){
 
  const d=new Date(date);
@@ -392,28 +387,44 @@ function roundDown(date){
 }
 
 /* Sheets */
-
-async function writeSheet(date,time,store,count,staff,total){
-
- const auth = new google.auth.GoogleAuth({
-  credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT),
-  scopes:["https://www.googleapis.com/auth/spreadsheets"]
- });
-
- const sheets = google.sheets({version:"v4",auth});
-
- await sheets.spreadsheets.values.append({
-
-  spreadsheetId:process.env.SPREADSHEET_ID,
-
-  range:"Sheet1!A1",
-
-  valueInputOption:"USER_ENTERED",
-
-  requestBody:{
-   values:[[date,time,store,count,staff,"",total]]
+async function writeSheet(date, time, store, count, staff, total, vacancy, summary) {
+  const auth = new google.auth.GoogleAuth({
+    credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT),
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"]
+  });
+  const sheets = google.sheets({ version: "v4", auth });
+  const spreadsheetId = process.env.SPREADSHEET_ID;
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: "Sheet1!A:C",
+  });
+  const rows = res.data.values || [];
+  const normalizeDate = (d) => {
+   if (!d) return "";
+   return d.toString().replace(/-/g, '/').split('/').map(p => parseInt(p)).join('/');
+  };
+  const targetDate = normalizeDate(date);
+  const rowIndex = rows.findIndex(row => {
+    if (!row[0] || !row[2]) return false;
+    return normalizeDate(row[0]) === targetDate && row[2].trim() === store.trim();
+  });
+  const values = [[date, time, store, count, staff, vacancy, total, summary]];
+  if (rowIndex !== -1) { // 上書き (rowIndexは0始まりなので +1)
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `Sheet1!A${rowIndex + 1}`,
+      valueInputOption: "USER_ENTERED",
+      requestBody: { values }
+    });
+    console.log(`${store} のデータを上書きしました（${rowIndex + 1}行目）`);
+  } else { // 新規追加
+    await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: "Sheet1!A1",
+      valueInputOption: "USER_ENTERED",
+      requestBody: { values }
+    });
   }
-
- });
-
 }
+
+
