@@ -75,6 +75,14 @@ console.log("ログイン成功");
 
 /* 現在時刻 */
 const now = new Date();
+const hour = Number(now.toLocaleTimeString("ja-JP",{
+ timeZone:"Asia/Tokyo",
+ hour:"2-digit",
+ hour12:false
+}));
+
+const MODE = hour < 12 ? "morning" : "workcheck";
+
 const parts = new Intl.DateTimeFormat("ja-JP", {
   timeZone: "Asia/Tokyo",
   year: "numeric",
@@ -93,6 +101,7 @@ const from=`${yyyy}-${mm}-${dd}T00:00:00+09:00`;
 const to=`${yyyy}-${mm}-${dd}T23:59:59+09:00`;
 
 let message = `Timee確認 ${date} ${time}\n`;
+let sendSlack = true;
 
 /* 店舗ループ */
 
@@ -104,6 +113,14 @@ for(const CLIENT_ID of CLIENT_IDS){
 `https://api-app-new.taimee.co.jp/app/api/v1/clients/${CLIENT_ID}/attending_worker_lists/workers.xlsx?start_at_from=${encodeURIComponent(from)}&start_at_to=${encodeURIComponent(to)}`;
 
 const res = await page.goto(apiUrl,{waitUntil:"networkidle2"});
+let res;
+
+for(let i=0;i<3;i++){
+ try{
+  res = await page.goto(apiUrl,{waitUntil:"networkidle2"});
+  if(res && res.ok()) break;
+ }catch(e){}
+}
  
  const buffer = await res.buffer();
 
@@ -116,7 +133,15 @@ const res = await page.goto(apiUrl,{waitUntil:"networkidle2"});
 /* Excel解析 */
 
 const workbook = XLSX.readFile(filePath);
+if(!workbook.SheetNames || workbook.SheetNames.length===0){
+ console.log(`${store} シートなし`);
 
+ if(MODE==="morning"){
+  await writeSheet(date,time,store,0,"","");
+ }
+
+ continue;
+}
 const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
 const data = XLSX.utils.sheet_to_json(sheet);
@@ -149,6 +174,24 @@ const staff = data.map(row=>{
 }).filter(Boolean);
 
 const count = staff.length;
+/* 募集なし判定（朝のみ） */
+
+if(MODE==="morning" && count===0){
+
+ message += `${store}\n募集なし\n`;
+
+ await writeSheet(
+  date,
+  time,
+  store,
+  0,
+  "",
+  ""
+ );
+
+ continue;
+
+}
 
 /* Slack表示 */
 
@@ -170,6 +213,16 @@ staff.forEach(s=>{
  if(!s.end) allFinished=false;
 });
 
+ /* 勤務中なら終了（15:30チェック） */
+
+if(MODE==="workcheck" && !allFinished){
+ sendSlack = false;
+ console.log(`${store} 勤務中あり → スキップ`);
+
+ continue;
+
+}
+  
 /* 勤務時間計算 */
 
 let totalHours="";
@@ -196,8 +249,7 @@ await writeSheet(
 }
 
 /* Slack */
-
-if(SLACK_WEBHOOK){
+if(SLACK_WEBHOOK && sendSlack){
 
  await fetch(SLACK_WEBHOOK,{
   method:"POST",
