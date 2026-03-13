@@ -120,8 +120,15 @@ let res;
 
 for(let i=0;i<3;i++){
  try{
-  res = await page.goto(apiUrl,{waitUntil:"networkidle2"});
-  if(res && res.ok()) break;
+  res = await page.evaluate(async(url)=>{
+   const r = await fetch(url,{credentials:"include"});
+   const buf = await r.arrayBuffer();
+   return Array.from(new Uint8Array(buf));
+  },apiUrl);
+
+  if(res) break;
+//  res = await page.goto(apiUrl,{waitUntil:"networkidle2"});
+//  if(res && res.ok()) break;
  }catch(e){console.log(e)}
 }
 if(!res){
@@ -160,7 +167,7 @@ if(!workbook.SheetNames || workbook.SheetNames.length===0){
 const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
 const data = XLSX.utils.sheet_to_json(sheet,{header:1});
-console.log(data)
+console.log('data:\n'+data)
 
 /* スタッフ */
 
