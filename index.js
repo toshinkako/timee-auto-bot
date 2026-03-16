@@ -60,7 +60,7 @@ console.log("ログイン成功");
  // ログイン直後に、まず新ドメインのトップへ移動
  
 //await page.goto("https://app-new.taimee.co.jp/dashboard", {
-//await page.goto("https://app-new.taimee.co.jp/account", {
+await page.goto("https://app-new.taimee.co.jp/account", {
  waitUntil: "networkidle2"
 });
  console.log("ダッシュボードを表示しました");
