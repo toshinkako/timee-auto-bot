@@ -15,26 +15,34 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
 });
 
 const page = await browser.newPage();
+await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+await page.setExtraHTTPHeaders({ 'Accept-Language': 'ja-JP,ja;q=0.9' });
 await page.setDefaultNavigationTimeout(60000);
 
 console.log("Timeeログイン開始");
 const loginUrls = [
- "https://app.taimee.co.jp/login",
  "https://app-new.taimee.co.jp/login",
+ "https://app.taimee.co.jp/login",
  "https://app-new.taimee.co.jp/account"
 ];
 
 let loaded=false;
 for(const url of loginUrls){
   try{
-    await page.goto(url,{waitUntil:"networkidle2"});
-    await page.waitForSelector('input[type="email"]', { timeout: 30000 });
-    console.log("ログインページ:",url);
+    console.log(`アクセス試行中: ${url}`);
+    //await page.goto(url,{waitUntil:"networkidle2"});
+    //await page.waitForSelector('input[type="email"]', { timeout: 30000 });
+    await page.goto(url, { waitUntil: "load", timeout: 30000 });
+    await page.waitForSelector('input[type="email"]', { timeout: 15000 });
+    console.log("ログイン　ページ:",url);
     loaded=true;
     break;
  }catch(e){}
 }
-if(!loaded) throw new Error("ログインページ取得失敗");
+if(!loaded) {
+  await page.screenshot({ path: 'login_error_debug.png' });
+  throw new Error("ログインページ取得失敗");
+}
 
 await page.type( 'input[type="email"], input[name*="email"], input[placeholder*="メール"]',process.env.TAIMEE_EMAIL);
 await page.type('input[type="password"]',process.env.TAIMEE_PASSWORD);
