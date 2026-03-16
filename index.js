@@ -27,6 +27,7 @@ console.log("Timeeログイン開始");
 
 const loginUrls = [
  "https://app.taimee.co.jp/login",
+  "https://app-new.taimee.co.jp/login",
  "https://app-new.taimee.co.jp/account"
 ];
 
@@ -35,7 +36,7 @@ for(const url of loginUrls){
 
  try{
   await page.goto(url,{waitUntil:"networkidle2"});
-  await page.waitForSelector("input",{timeout:5000});
+  await page.waitForSelector('input[type="email"]', { timeout: 30000 });
   console.log("ログインページ:",url);
   loaded=true;
   break;
@@ -46,15 +47,8 @@ if(!loaded){
  throw new Error("ログインページ取得失敗");
 }
 
-await page.type(
- 'input[type="email"], input[name*="email"], input[placeholder*="メール"]',
- process.env.TAIMEE_EMAIL
-);
-
-await page.type(
- 'input[type="password"]',
- process.env.TAIMEE_PASSWORD
-);
+await page.type( 'input[type="email"], input[name*="email"], input[placeholder*="メール"]',process.env.TAIMEE_EMAIL);
+await page.type('input[type="password"]',process.env.TAIMEE_PASSWORD);
 
 await Promise.all([
  page.waitForNavigation({waitUntil:"networkidle2"}),
@@ -64,8 +58,10 @@ await Promise.all([
 console.log("ログイン成功");
 
  // ログイン直後に、まず新ドメインのトップへ移動
-await page.goto("https://app-new.taimee.co.jp/dashboard", {
-  waitUntil: "networkidle2"
+ 
+//await page.goto("https://app-new.taimee.co.jp/dashboard", {
+//await page.goto("https://app-new.taimee.co.jp/account", {
+ waitUntil: "networkidle2"
 });
  console.log("ダッシュボードを表示しました");
 await new Promise(r => setTimeout(r, 3000));
@@ -328,6 +324,7 @@ await writeSheet(
 }
 
 /* Slack */
+sendSlack = false;
 if(SLACK_WEBHOOK && sendSlack){
 
  await fetch(SLACK_WEBHOOK,{
