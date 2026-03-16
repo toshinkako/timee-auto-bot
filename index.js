@@ -69,38 +69,32 @@ await new Promise(r => setTimeout(r, 3000));
 /* 現在時刻 */
 const now = new Date();
 const hour = Number(now.toLocaleTimeString("ja-JP",{
- timeZone:"Asia/Tokyo",
- hour:"2-digit",
- hour12:false
+ timeZone:"Asia/Tokyo", hour:"2-digit", hour12:false
 }));
-
 const MODE = hour < 12 ? "morning" : "workcheck";
 
 const parts = new Intl.DateTimeFormat("ja-JP", {
-  timeZone: "Asia/Tokyo",
-  year: "numeric",
-  month: "numeric",
-  day: "numeric",
+ timeZone: "Asia/Tokyo",
+  year: "numeric", month: "numeric", day: "numeric",
 }).formatToParts(now);
 const yyyy = parts.find(p => p.type === 'year').value;
 const mm = parts.find(p => p.type === 'month').value;
 const dd = parts.find(p => p.type === 'day').value;
  
 const date = `${yyyy}/${mm}/${dd}`;
+const targetDateStr = `${yyyy}年${mm}月${dd}日`;
 
 const time = now.toLocaleTimeString("ja-JP",{timeZone:"Asia/Tokyo",hour:"2-digit",minute:"2-digit"});
 
 const from=`${yyyy}-${mm}-${dd}T00:00:00+09:00`;
 const to=`${yyyy}-${mm}-${dd}T23:59:59+09:00`;
-const targetDateStr = `${yyyy}年${mm}月${dd}日`;
 
-let message = `【Timee勤務確認】 ${date} ${time}\n`;
+let message = `【Timee勤務確認】\n  ${date} ${time}\n`;
 let sendSlack = true;
 
 /* 店舗ループ */
 for(const CLIENT_ID of CLIENT_IDS){
  const store = STORE_NAMES[CLIENT_ID];
- //const dashboardUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/attending_worker_lists`;
  const dashboardUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/users/attendings`;
  // ページ移動
   console.log(`${store} への遷移を開始します...`);
@@ -111,7 +105,6 @@ for(const CLIENT_ID of CLIENT_IDS){
     await page.reload({ waitUntil: "networkidle2" });
     await new Promise(r => setTimeout(r, 3000));
   }
-  
   console.log(`${store} のページを開きました`);
  
  // 2. ダウンロードディレクトリの設定（実行フォルダに保存するように指定）
@@ -125,12 +118,9 @@ for(const CLIENT_ID of CLIENT_IDS){
  
  // 3. ボタンを探してクリック 
 try {
-  console.log(`${store} のデータを読み込み中...`);
-  
-  // ページ内のリスト（テーブルなど）が表示されるのを待つ
+  console.log(`${store} のデータを読み込み中...`);  
   await page.waitForSelector('main, table, [class*="list"]', { timeout: 15000 }).catch(() => {});
-  
-  // 少しスクロールして要素を読み込ませる
+    // 少しスクロールして要素を読み込ませる
   await page.evaluate(() => window.scrollBy(0, 500));
   await new Promise(r => setTimeout(r, 2000));
 
@@ -164,50 +154,6 @@ try {
     await page.screenshot({ path: `error_not_found_${CLIENT_ID}.png` });
     continue;
   }
-
-
- /*
-  console.log(`${store} のダウンロードボタンを検索中...`);
-
- const clickResult = await page.evaluate(() => {
-    // 全てのボタン・リンク・スパンを取得
-    const elements = Array.from(document.querySelectorAll('button, a, span, div[role="button"]'));
-   const target = elements.find(e => {
-      const text = e.innerText || "";
-      return text.includes("ダウンロード") 
-             && !text.includes("設定") // 「ダウンロード項目の設定」を除外
-             && e.offsetWidth > 0 
-             && e.offsetHeight > 0;
-    });
-   if (target) {
-      const clickTarget = target.closest('button') || target.closest('a') || target;
-      clickTarget.click();
-      return { success: true, text: target.innerText.replace(/\n/g, " ") };
-    }
-    // 見つからない場合、デバッグ用に今のボタンっぽい要素のテキストをいくつか返す
-    const fallback = elements.slice(0, 10).map(e => e.innerText.trim()).filter(t => t.length > 0);
-    return { success: false, foundTexts: fallback };
-  });
-
-  if (clickResult.success) {
-    console.log(`${store} ボタン「${clickResult.text}」をクリックしました`);
-    await new Promise(r => setTimeout(r, 8000)); // DL完了待ち
-  } else {
-    console.log(`${store} 候補テキスト:`, clickResult.foundTexts);
-    await page.screenshot({ path: `error_${CLIENT_ID}.png`, fullPage: true });
-    console.log(`${store} ボタン特定失敗。スクショを保存しました。`);
-    
-    // スタッフが0人の場合にボタンが消える仕様か確認
-    const isNoWorker = await page.evaluate(() => document.body.innerText.includes("勤務予定のワーカーはいません"));
-    if (isNoWorker) {
-      console.log(`${store} ワーカーが0人のため、募集なしとして処理します`);
-      if (MODE === "morning") {
-        await writeSheet(date, time, store, 0, "", "");
-      }
-    }
-    continue;
-  }
-  */
 } catch (e) {
   console.log(`${store} 操作中にエラー:`, e.message);
   continue;
