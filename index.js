@@ -136,7 +136,7 @@ for(const CLIENT_ID of CLIENT_IDS){
     return jstNow < endTime; 
   });
    if (MODE === "workcheck" && isWorkingNow) {
-        console.log(`${store} 勤務中');
+        console.log(`${store} 勤務中`);
         //     sendSlack = false;
         continue;
     }
