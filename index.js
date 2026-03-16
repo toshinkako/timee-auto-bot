@@ -193,6 +193,7 @@ const workbook = XLSX.readFile(filePath);
       return { name: row[1], start: row[4], end: row[5] };
     }).filter(Boolean);
  const count = staff.length;
+ 
 // --- ⓶ 就業中判断（現在時刻と終了予定を比較） ---
  const isWorkingNow = staff.some(s => {
     if (!s.end) return false;
@@ -228,8 +229,8 @@ const workbook = XLSX.readFile(filePath);
     anyStoreSent = true;
  
  // --- ④ スプレッドシート上書き記録 ---
-    await writeSheet(date, time, store, count, staff.map(s => s.name.replace(/\s*/,'').join(","), totalHours, vacancy, summaryStr);
-  }
+    await writeSheet(date, time, store, count, staff.map(s => s.name.replace(/\s.*/g,'')).join(","), totalHours, vacancy, summaryStr);
+  
 // Slack通知（1店舗でも更新があれば送信）
   if (SLACK_WEBHOOK && anyStoreSent) {
     await fetch(SLACK_WEBHOOK, {
