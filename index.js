@@ -78,13 +78,15 @@ let sendSlack = true;
 for(const CLIENT_ID of CLIENT_IDS){
   const store = STORE_NAMES[CLIENT_ID];
 
-  // --- 【改善】実行前に古いファイルを削除して混同を防ぐ ---///260317
   const downloadPath = process.cwd();
   fs.readdirSync(downloadPath).forEach(f => {
     if(f.endsWith('.xlsx')) fs.unlinkSync(f);
   });
   
-  const offeringsUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings`;
+//  const offeringsUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings`;
+  const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+  const offeringsUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings?date_from=${dateParam}&date_to=${dateParam}`;
+  
   console.log(`${store} 求人一覧へ遷移中...`);
   await page.goto(offeringsUrl, { waitUntil: "networkidle2" });
   await new Promise(r => setTimeout(r, 5000));
