@@ -85,21 +85,63 @@ for(const CLIENT_ID of CLIENT_IDS){
   fs.readdirSync(downloadPath).forEach(f => {
     if(f.endsWith('.xlsx')) fs.unlinkSync(f);
   });
-
-  const dashboardUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/users/attendings`;
-  console.log(`${store} 遷移中...`);
-  await page.goto(dashboardUrl, { waitUntil: "networkidle2" });
+  
+  const offeringsUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings`;
+  console.log(`${store} 求人一覧へ遷移中...`);
+  await page.goto(offeringsUrl, { waitUntil: "networkidle2" });
   await new Promise(r => setTimeout(r, 5000));
-  const vacancy = await page.evaluate(() => {
-      const match = document.body.innerText.match(/あと\s*(\d+)\s*人/);
-      return match ? match[1] : "0";
-  });
- 
+
+  // 1. リスト表示に切り替え（アイコンが list のボタンをクリック）
+  try {
+    await page.evaluate(() => {
+        const listBtn = Array.from(document.querySelectorAll('button, span')).find(el => el.innerText === 'list' || el.textContent === 'list')?.closest('button');
+        if (listBtn) listBtn.click();
+    });
+    await new Promise(r => setTimeout(r, 2000));
+  } catch (e) { console.log("リスト切り替え失敗（既にリストの可能性があります）"); }
+  
  // ダウンロード設定
   ///const downloadPath = process.cwd();
   const client = await page.target().createCDPSession();
   await client.send('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: downloadPath, });
 
+  // 2. 当日の全求人行を解析
+  const jobData = await page.evaluate((targetDateStr) => {
+    const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa, tr'));
+    const results = [];
+    rows.forEach(row => {
+        const text = row.innerText;
+        // 当日の日付が含まれているかチェック
+        if (text.includes(targetDateStr)) {
+            const status = row.querySelector('.bg-offeringStatus-working-normal, [class*="bg-offeringStatus"]')?.innerText || "不明";
+            const timeMatch = text.match(/(\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})/);
+            const workerMatch = text.match(/(\d+)\s*\/\s*(\d+)\s*人/);
+  console.log(status)          
+            results.push({
+                status: status, // "稼働中", "募集終了", "マッチング中" など
+                timeRange: timeMatch ? timeMatch[0] : "",
+                startTime: timeMatch ? timeMatch[1] : "",
+                endTime: timeMatch ? timeMatch[2] : "",
+                workerCount: workerMatch ? workerMatch[1] : "0",
+                workerLimit: workerMatch ? workerMatch[2] : "0"
+            });
+        }
+    });
+    return results;
+  }, targetDateStr);
+  console.log(`${store} の取得結果:`, jobData);
+  if (jobData.length === 0) {
+    console.log(`${store} 本日の求人が見つかりませんでした。`);
+    continue;
+  }
+  // 3. 全案件が終了しているかチェック
+  const isAnyJobActive = jobData.some(job => job.status === "稼働中" || job.status === "マッチング中");
+  if (MODE === "workcheck" && isAnyJobActive) {
+    console.log(`${store} まだ稼働中の案件があるためスキップします。`);
+    continue;
+  }
+
+  
  // ボタンクリック処理
  try {
    console.log(`${store} のデータを読み込み中...`);
