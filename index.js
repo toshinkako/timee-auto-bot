@@ -91,14 +91,19 @@ for(const CLIENT_ID of CLIENT_IDS){
   await page.goto(offeringsUrl, { waitUntil: "networkidle2" });
   await new Promise(r => setTimeout(r, 5000));
 
-  // 1. リスト表示に切り替え（アイコンが list のボタンをクリック）
+  // 1. リスト表示に切り替え
   try {
     await page.evaluate(() => {
-        const listBtn = Array.from(document.querySelectorAll('button, span')).find(el => el.innerText === 'list' || el.textContent === 'list')?.closest('button');
-        if (listBtn) listBtn.click();
+      const buttons = Array.from(document.querySelectorAll('button'));
+        const listBtn = buttons.find(el => el.innerText.includes('list') || el.textContent.includes('list'));
+        if (listBtn) {
+            listBtn.click();
+            console.log("リスト表示に切り替えました");
+        }        
     });
-    await new Promise(r => setTimeout(r, 2000));
-  } catch (e) { console.log("リスト切り替え失敗（既にリストの可能性があります）"); }
+    await page.waitForSelector('tr, .css-1wwuwwa', { timeout: 10000 }).catch(() => {});
+    await new Promise(r => setTimeout(r, 3000));
+  } catch (e) { console.log("リスト切り替えエラー:", e.message); }
   
  // ダウンロード設定
   ///const downloadPath = process.cwd();
@@ -107,24 +112,25 @@ for(const CLIENT_ID of CLIENT_IDS){
 
   // 2. 当日の全求人行を解析
   const jobData = await page.evaluate((targetDateStr) => {
-    const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa, tr'));
+    const rows = Array.from(document.querySelectorAll('tr, [class*="item"]'));
     const results = [];
     rows.forEach(row => {
-        const text = row.innerText;
-        // 当日の日付が含まれているかチェック
-        if (text.includes(targetDateStr)) {
-            const status = row.querySelector('.bg-offeringStatus-working-normal, [class*="bg-offeringStatus"]')?.innerText || "不明";
-            const timeMatch = text.match(/(\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})/);
-            const workerMatch = text.match(/(\d+)\s*\/\s*(\d+)\s*人/);
-  console.log(status)          
-            results.push({
-                status: status, // "稼働中", "募集終了", "マッチング中" など
+      const text = row.innerText || "";
+      if (text.includes(targetDateStr)) {
+        const statusEl = row.querySelector('[class*="Status"], [class*="status"]');
+        const status = statusEl ? statusEl.innerText.trim() : "不明";
+        // 時間と人数の抽出
+        const timeMatch = text.match(/(\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})/);
+        const workerMatch = text.match(/(\d+)\s*\/\s*(\d+)\s*人/);
+        if (timeMatch || workerMatch) {
+              results.push({
+                status: status,
                 timeRange: timeMatch ? timeMatch[0] : "",
-                startTime: timeMatch ? timeMatch[1] : "",
-                endTime: timeMatch ? timeMatch[2] : "",
                 workerCount: workerMatch ? workerMatch[1] : "0",
                 workerLimit: workerMatch ? workerMatch[2] : "0"
-            });
+              });
+            }        
+  console.log(status)          
         }
     });
     return results;
@@ -132,6 +138,18 @@ for(const CLIENT_ID of CLIENT_IDS){
   console.log(`${store} の取得結果:`, jobData);
   if (jobData.length === 0) {
     console.log(`${store} 本日の求人が見つかりませんでした。`);
+    continue;
+  }
+  // 取得結果から vacancy（募集残）を算出
+  let vacancy = "0";
+  if (jobData.length > 0) {
+    const totalCount = jobData.reduce((sum, job) => sum + parseInt(job.workerCount), 0);
+    const totalLimit = jobData.reduce((sum, job) => sum + parseInt(job.workerLimit), 0);
+    vacancy = (totalLimit - totalCount).toString();
+  } else {
+    console.log(`${store} 本日の求人が見つかりませんでした。`);
+    // 取得失敗時は念のためスクリーンショット
+    await page.screenshot({ path: `debug_${store}_no_data.png` });
     continue;
   }
   // 3. 全案件が終了しているかチェック
