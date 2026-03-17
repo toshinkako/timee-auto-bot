@@ -79,9 +79,17 @@ let sendSlack = true;
 /* 店舗ループ */
 for(const CLIENT_ID of CLIENT_IDS){
   const store = STORE_NAMES[CLIENT_ID];
+
+  // --- 【改善】実行前に古いファイルを削除して混同を防ぐ ---///260317
+  const downloadPath = process.cwd();
+  fs.readdirSync(downloadPath).forEach(f => {
+    if(f.endsWith('.xlsx')) fs.unlinkSync(f);
+  });
+
   const dashboardUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/users/attendings`;
   console.log(`${store} 遷移中...`);
   await page.goto(dashboardUrl, { waitUntil: "networkidle2" });
+  await new Promise(r => setTimeout(r, 5000));
   const vacancy = await page.evaluate(() => {
       const match = document.body.innerText.match(/あと\s*(\d+)\s*人/);
       return match ? match[1] : "0";
@@ -97,23 +105,34 @@ for(const CLIENT_ID of CLIENT_IDS){
    console.log(`${store} のデータを読み込み中...`);
   await page.waitForSelector('[data-testid="split-button-menu"]', { timeout: 10000 });
   const clickResult = await page.evaluate(async (dateStr) => {
-    const dateElement = Array.from(document.querySelectorAll('div, span, p, td')).find(e => e.innerText.trim() === dateStr);
+    const elements = Array.from(document.querySelectorAll('div, span, p, td'));
+    const dateElement = elements.find(e => e.innerText.trim() === dateStr);
     if (!dateElement) return { success: false, reason: "日付なし" };
     const row = dateElement.closest('div[class*="row"], tr, [class*="item"], .css-0');
     const menu = row.querySelector('[data-testid="split-button-menu"]');
+    if (!menu) return { success: false, reason: "メニューボタン(▼)なし" };
     menu.querySelector('button').click();
-    await new Promise(r => setTimeout(r, 1200));
+    await new Promise(r => setTimeout(r, 2000));    
     const item = Array.from(document.querySelectorAll('button, .css-v2z2ni')).find(i => i.innerText.includes("1日分をまとめて"));
-    if (item) { item.click(); return { success: true }; }
-    return { success: false, reason: "DLボタンなし" };
+    if (item) { item.click(); return { success: true }; 
+    }else{
+     console.log('use/items')
+      const items = Array.from(document.querySelectorAll('button, [role="menuitem"]'));
+      const downloadBtn = items.find(i => i.innerText.includes("1日分をまとめて"));
+      if (downloadBtn) { downloadBtn.click(); return { success: true };
+      }
+      return { success: false, reason: "DLボタンなし" };
+    }
   }, targetDateStr);
 
   if (!clickResult.success) {
     console.log(`${store} スキップ: ${clickResult.reason}`);
+    // デバッグ用にスクリーンショットを撮る  //260317
+      await page.screenshot({ path: `error_${store}_not_found.png` });
     continue;
   }
-  await new Promise(r => setTimeout(r, 8000));
- } catch (e) { console.log(`${store} エラー:`, e.message); continue; }
+  await new Promise(r => setTimeout(r, 10000));
+ } catch (e) { console.log(`${store} DLエラー:`, e.message); continue; }
 
  // ファイル処理
   const files = fs.readdirSync(downloadPath);
