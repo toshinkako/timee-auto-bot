@@ -82,6 +82,21 @@ for(const CLIENT_ID of CLIENT_IDS){
   fs.readdirSync(downloadPath).forEach(f => {
     if(f.endsWith('.xlsx')) fs.unlinkSync(f);
   });
+
+  // 2. 時間帯によって遷移先とモードを決定
+  let targetUrl = "";
+  let pageMode = "";
+  if (hour < 12) {
+    targetUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings`;
+    pageMode = "OFFERINGS";
+    console.log(`${store} [午前モード] 求人一覧へ遷移中...`);
+  } else {
+    const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+    targetUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/users/attendings?date=${dateParam}`;
+    pageMode = "ATTENDINGS";
+    console.log(`${store} [午後モード] 就業予定表へ遷移中...`);
+  }
+  
   
 //  const offeringsUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings`;
   const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
