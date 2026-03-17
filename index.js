@@ -120,31 +120,34 @@ for(const CLIENT_ID of CLIENT_IDS){
   await client.send('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: downloadPath, });
 
   // 2. 当日の全求人行を解析
-  const jobData = await page.evaluate((targetDateStr) => {
+const jobData = await page.evaluate((m, d) => { // 引数名を短くして確実に受け取る
     const results = [];
-    const dateQuery = targetDateStr.replace(/（.）$/, "");
-    const simpleDate = dateQuery.split('年')[1];
-    const rows = Array.from(document.querySelectorAll('tr'));
+    const dateQuery = `${m}月${d}日`; 
+    
+    const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
+    
     rows.forEach(row => {
       const text = row.innerText || "";
-      if (text.includes(dateQuery) || text.includes(simpleDate)) {
-        const statusEl = row.querySelector('[class*="Status"], [class*="status"]');
-        let status = statusEl ? statusEl.innerText.trim() : "マッチング中";
+      if (text.includes(dateQuery)) {
+        const statusDiv = row.querySelector('div[class*="bg-offeringStatus"]');
+        let status = statusDiv ? statusDiv.innerText.trim() : "マッチング中";
+
         const timeMatch = text.match(/(\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})/);
         const workerMatch = text.match(/(\d+)\s*\/\s*(\d+)\s*人/);
+        
         if (timeMatch || workerMatch) {
-              results.push({
-                status: status,
-                timeRange: timeMatch ? timeMatch[0] : "",
-                workerCount: workerMatch ? workerMatch[1] : "0",
-                workerLimit: workerMatch ? workerMatch[2] : "0"
-              });
-          }        
-  console.log('status',status)          
+          results.push({
+            status: status,
+            timeRange: timeMatch ? timeMatch[0] : "",
+            workerCount: workerMatch ? workerMatch[1] : "0",
+            workerLimit: workerMatch ? workerMatch[2] : "0"
+          });
         }
+      }
     });
     return results;
-  }, targetDateStr);
+  }, mm, dd);
+  
   console.log(`${store} の取得結果:`, jobData);
   
   // 取得結果から vacancy（募集残）を算出
@@ -169,37 +172,46 @@ for(const CLIENT_ID of CLIENT_IDS){
   
  // ボタンクリック処理
  try {
-   console.log(`${store} のデータを読み込み中...`);
-  await page.waitForSelector('[data-testid="split-button-menu"]', { timeout: 10000 });
-  const clickResult = await page.evaluate(async (dateStr) => {
-    const elements = Array.from(document.querySelectorAll('div, span, p, td'));
-    const dateElement = elements.find(e => e.innerText.trim() === dateStr);
-    if (!dateElement) return { success: false, reason: "日付なし" };
-    const row = dateElement.closest('div[class*="row"], tr, [class*="item"], .css-0');
-    const menu = row.querySelector('[data-testid="split-button-menu"]');
-    if (!menu) return { success: false, reason: "メニューボタン(▼)なし" };
-    menu.querySelector('button').click();
-    await new Promise(r => setTimeout(r, 2000));    
-    const item = Array.from(document.querySelectorAll('button, .css-v2z2ni')).find(i => i.innerText.includes("1日分をまとめて"));
-    if (item) { item.click(); return { success: true }; 
-    }else{
-     console.log('use/items')
-      const items = Array.from(document.querySelectorAll('button, [role="menuitem"]'));
-      const downloadBtn = items.find(i => i.innerText.includes("1日分をまとめて"));
-      if (downloadBtn) { downloadBtn.click(); return { success: true };
+    console.log(`${store} のメニュー操作を開始...`);
+    const clickResult = await page.evaluate(async (mm, dd) => {
+      const dateQuery = `${mm}月${dd}日`;
+      const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
+      
+      // 対象の日付を含む行を探す
+      const targetRow = rows.find(r => r.innerText.includes(dateQuery));
+      if (!targetRow) return { success: false, reason: `日付(${dateQuery})の行が見つかりません` };
+      
+      // その行の中にある split-button-menu を探して、中にある展開ボタンをクリック
+      const menuContainer = targetRow.querySelector('[data-testid="split-button-menu"]');
+      const toggleBtn = menuContainer?.querySelector('button');
+      
+      if (!toggleBtn) return { success: false, reason: "メニューボタンが見つかりません" };
+      
+      toggleBtn.click();
+      await new Promise(r => setTimeout(r, 2000));
+      
+      // 出現したメニューから「1日分をまとめて」ボタンを探す
+      // 画面上では「コピー」がメインボタンなので、その下のリストから探す
+      const menuItems = Array.from(document.querySelectorAll('button, li, [role="menuitem"]'));
+      const downloadBtn = menuItems.find(i => i.innerText.includes("1日分") || i.innerText.includes("まとめて"));
+      
+      if (downloadBtn) {
+        downloadBtn.click();
+        return { success: true };
       }
-      return { success: false, reason: "DLボタンなし" };
-    }
-  }, targetDateStr);
+      return { success: false, reason: "ダウンロード項目が見つかりません" };
+    }, mm, dd);
 
-  if (!clickResult.success) {
-    console.log(`${store} スキップ: ${clickResult.reason}`);
-    // デバッグ用にスクリーンショットを撮る  //260317
-      await page.screenshot({ path: `error_${store}_not_found.png` });
+    if (!clickResult.success) {
+      console.log(`${store} スキップ: ${clickResult.reason}`);
+      await page.screenshot({ path: `error_${store}_menu.png` });
+      continue;
+    }
+    await new Promise(r => setTimeout(r, 10000)); // DL待機
+  } catch (e) {
+    console.log(`${store} 操作エラー:`, e.message);
     continue;
   }
-  await new Promise(r => setTimeout(r, 10000));
- } catch (e) { console.log(`${store} DLエラー:`, e.message); continue; }
 
  // ファイル処理
   const files = fs.readdirSync(downloadPath);
