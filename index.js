@@ -32,8 +32,6 @@ for(const url of loginUrls){
     console.log(`アクセス試行中: ${url}`);
     await page.goto(url,{waitUntil:"networkidle2"});
     await page.waitForSelector("input",{timeout:5000});
-    //await page.goto(url, { waitUntil: "load", timeout: 30000 });
-    //await page.waitForSelector('input[type="email"]', { timeout: 15000 });
     console.log("ログイン　ページ:",url);
     loaded=true;
     break;
@@ -95,25 +93,26 @@ for(const CLIENT_ID of CLIENT_IDS){
   try {
     console.log(`${store} リスト表示へ切り替え試行...`);
     await page.evaluate(() => {
-      const buttons = Array.from(document.querySelectorAll('button, span, i'));
-      const listTarget = buttons.find(el =>
-          el.innerText === 'list' || 
-          el.textContent === 'list' || 
-          el.innerText.includes('リスト')
-      );
-      const listBtn = listTarget?.closest('button') || listTarget;
-      if (listBtn){listBtn.click();
-                  }else{console.log('リストボタン見つからず',buttons)}
+      // 1. material-symbols-rounded で中身が 'list' のものを探す
+      const icons = Array.from(document.querySelectorAll('.material-symbols-rounded'));
+      const listIcon = icons.find(el => el.innerText.trim() === 'list');
+      const btn = listIcon?.closest('button');
+      if (btn) {
+        btn.click();
+      } else {
+        // 2. セレクターで直接狙う（現在のTimeeのボタン構造）
+        const fallbackBtn = document.querySelector('button[type="button"] .material-symbols-rounded');
+        if (fallbackBtn && fallbackBtn.innerText.trim() === 'list') {
+            fallbackBtn.closest('button').click();
+    console.log('use/fallbackbtn')
+        }
+      }      
     });
-
-    // リスト特有の要素（テーブル行など）が出るまで最大10秒待機
-    await page.waitForFunction(() => {
-        return document.querySelectorAll('tr, .css-1wwuwwa').length > 5;
-    }, { timeout: 10000 }).catch(() => console.log("リスト要素の待機タイムアウト（続行します）"));
-    
+    await page.waitForSelector('tr, .css-1wwuwwa', { timeout: 8000 }).catch(() => {
+        console.log("リスト要素が見つかりません。カレンダーのままの可能性があります。");
+    });
     await new Promise(r => setTimeout(r, 3000));
-  } catch (e) { console.log("リスト切り替えエラー:", e.message); }
-  
+  } catch (e) { console.log("リスト切り替え失敗:", e.message); }
       
  // ダウンロード設定
   ///const downloadPath = process.cwd();
@@ -122,22 +121,15 @@ for(const CLIENT_ID of CLIENT_IDS){
 
   // 2. 当日の全求人行を解析
   const jobData = await page.evaluate((targetDateStr) => {
-    const shortDate = targetDateStr.replace(/（.）$/, "");
-    const rows = Array.from(document.querySelectorAll('tr, [class*="item"]'));
     const results = [];
-  console.log(targetDateStr,shortDate,rows.length)
+    const dateQuery = targetDateStr.replace(/（.）$/, "");
+    const simpleDate = dateQuery.split('年')[1];
+    const rows = Array.from(document.querySelectorAll('tr'));
     rows.forEach(row => {
       const text = row.innerText || "";
-      if (text.includes(targetDateStr) || text.includes(shortDate)) {
+      if (text.includes(dateQuery) || text.includes(simpleDate)) {
         const statusEl = row.querySelector('[class*="Status"], [class*="status"]');
-        let status = statusEl ? statusEl.innerText.trim() : "";
-        if(!status) {
-                // クラス名から推測
-                if(row.innerHTML.includes('working')) status = "稼働中";
-                else if(row.innerHTML.includes('closed')) status = "募集終了";
-                else status = "マッチング中";
-        }
-        // 時間と人数の抽出
+        let status = statusEl ? statusEl.innerText.trim() : "マッチング中";
         const timeMatch = text.match(/(\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})/);
         const workerMatch = text.match(/(\d+)\s*\/\s*(\d+)\s*人/);
         if (timeMatch || workerMatch) {
@@ -147,7 +139,7 @@ for(const CLIENT_ID of CLIENT_IDS){
                 workerCount: workerMatch ? workerMatch[1] : "0",
                 workerLimit: workerMatch ? workerMatch[2] : "0"
               });
-            }        
+          }        
   console.log('status',status)          
         }
     });
