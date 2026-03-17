@@ -30,10 +30,10 @@ let loaded=false;
 for(const url of loginUrls){
   try{
     console.log(`アクセス試行中: ${url}`);
-    //await page.goto(url,{waitUntil:"networkidle2"});
-    //await page.waitForSelector('input[type="email"]', { timeout: 30000 });
-    await page.goto(url, { waitUntil: "load", timeout: 30000 });
-    await page.waitForSelector('input[type="email"]', { timeout: 15000 });
+    await page.goto(url,{waitUntil:"networkidle2"});
+    await page.waitForSelector("input",{timeout:5000});
+    //await page.goto(url, { waitUntil: "load", timeout: 30000 });
+    //await page.waitForSelector('input[type="email"]', { timeout: 15000 });
     console.log("ログイン　ページ:",url);
     loaded=true;
     break;
