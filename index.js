@@ -102,7 +102,7 @@ for(const CLIENT_ID of CLIENT_IDS){
           el.innerText.includes('リスト')
       );
       const listBtn = listTarget?.closest('button') || listTarget;
-      if (listBtn){btn.click();
+      if (listBtn){listBtn.click();
                   }else{console.log('リストボタン見つからず',buttons)}
     });
 
