@@ -49,11 +49,11 @@ jobs:
 
       - name: Upload screenshots on failure
         uses: actions/upload-artifact@v4
-        if: always() # エラーが起きても起きなくても必ず実行
+        if: always()
         with:
           name: debug-screenshots
-          path: error_*.png
-          retention-days: 5 # 5日間保存
+          path: "*.png"
+          retention-days: 3 # 3日間保存
 
       - name: Upload Excel
         uses: actions/upload-artifact@v4
