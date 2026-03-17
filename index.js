@@ -96,7 +96,7 @@ for(const CLIENT_ID of CLIENT_IDS){
   });
  
  // ダウンロード設定
-  const downloadPath = process.cwd();
+  ///const downloadPath = process.cwd();
   const client = await page.target().createCDPSession();
   await client.send('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: downloadPath, });
 
