@@ -135,6 +135,31 @@ for(const CLIENT_ID of CLIENT_IDS){
   // 日付（例: "2026年3月28日"）を指定して、その日の人数情報を取得する関数
   const targetDate = "2026年3月19日"; // ここを動的に変えられるようにします
 
+  const debugInfo = await page.evaluate((dateStr) => {
+      const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
+      const foundRow = rows.find(row => row.innerText.includes(dateStr));
+      if (!foundRow) return { status: "date_not_found", date: dateStr };
+      const cells = Array.from(foundRow.querySelectorAll('td'));
+      const workerCell = cells.find(td => td.innerText.includes('人'));
+      return {
+        status: "success",
+        date: dateStr,
+        fullText: foundRow.innerText.replace(/\n/g, ' '), // 行全体のテキスト
+        workerCellText: workerCell ? workerCell.innerText.trim() : "NOT_FOUND"
+      };
+    }, targetDate);
+    if (debugInfo.status === "success") {
+      console.log(`[DEBUG] ${store} 対象行テキスト: ${debugInfo.fullText}`);
+      console.log(`[DEBUG] ${store} workerCell内容: ${debugInfo.workerCellText}`);
+    } else {
+      console.log(`[DEBUG] ${store} ${targetDate} の行が見つかりませんでした。`);
+    }
+    const screenshotPath = `debug_${store}_list_view.png`;
+    await page.screenshot({ path: screenshotPath, fullPage: false });
+    console.log(`${store} スクリーンショットを保存しました: ${screenshotPath}`);
+  
+  
+  
   const workerStats = await page.evaluate((dateStr) => {
     const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
     for (const row of rows) {
