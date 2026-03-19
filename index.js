@@ -74,21 +74,28 @@ let message = `【Timee勤務確認】\n  ${date} ${time}\n`;
 let anyStoreSent = false; // 少なくとも1店舗が更新されたか
 let sendSlack = true;
 
+
 for(const CLIENT_ID of CLIENT_IDS){
   const store = STORE_NAMES[CLIENT_ID];
   const targetDate = "2026年3月19日"; // ここで定義
-
+  
   const downloadPath = process.cwd();
   fs.readdirSync(downloadPath).forEach(f => {
     if(f.endsWith('.xlsx')) fs.unlinkSync(f);
   });
 
-  const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+//  const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+  const dateParam = "2026-03-19"; 
   const offeringsUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings?date_from=${dateParam}&date_to=${dateParam}`;
-  console.log(`${store} 求人一覧へ遷移中...`, offeringsUrl);
+  console.log(`${store} 求人一覧へ遷移中...スキャン開始 ---`);  
+  console.log(`URL: ${offeringsUrl}`);
   await page.goto(offeringsUrl, { waitUntil: "networkidle2" });
-  await new Promise(r => setTimeout(r, 5000));
+  await new Promise(r => setTimeout(r, 5000)); // 描画待ち
 
+  
+  await new Promise(r => setTimeout(r, 3000));
+  
+  
   // --- ⓵ リスト表示に切り替え ---
   try {
     console.log(`${store} リスト表示への切り替えを試行...`);
@@ -110,16 +117,28 @@ for(const CLIENT_ID of CLIENT_IDS){
   let pageNum = 1;
   while (pageNum <= 5) {
     console.log(`${store} ${pageNum}ページ目をスキャン中...`);
-    
+    // 【追加】現在のページにある最初の日付をログに出す
+    const pageInfo = await page.evaluate(() => {
+      const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
+      if (rows.length === 0) return "行が見つかりません";
+      // 最初の行の日付を取得
+      const firstRow = rows[0];
+      const dateSpan = firstRow.querySelector('span.css-1r5gb7q') || firstRow;
+      return `最初の行の日付: ${dateSpan.innerText.trim().replace(/\n/g, ' ')}`;
+    });
+    console.log(`${store} [Page ${pageNum}] ${pageInfo}`);
+    await page.screenshot({ path: `scan_${store}_${pageNum}.png`, fullPage: true });
+
+
+    // ターゲットの検索
     const result = await page.evaluate((dateStr) => {
       const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
       const targetRow = rows.find(row => row.innerText.includes(dateStr));
       if (targetRow) {
-        const cells = Array.from(targetRow.querySelectorAll('td'));
-        const workerCell = cells.find(td => td.innerText.includes('人'));
-        return { found: true, text: workerCell ? workerCell.innerText.trim() : "0 / 0人" };
+        const workerCell = Array.from(targetRow.querySelectorAll('td')).find(td => td.innerText.includes('人'));
+        return { found: true, text: workerCell ? workerCell.innerText.trim() : "人数不明" };
       }
-      return { found: false };
+      return { found: true, text: workerCell ? workerCell.innerText.trim() : "0 / 0人" };
     }, targetDate);
 
     if (result.found) {
@@ -127,25 +146,28 @@ for(const CLIENT_ID of CLIENT_IDS){
       console.log(`[SUCCESS] ${store} ${targetDate} を発見: ${result.text}`);
       break;
     }
-
-    const hasNextPage = await page.evaluate(() => {
+  // 「次へ」ボタンの判定とクリック
+    const nextBtnResult = await page.evaluate(() => {
       const nextBtn = Array.from(document.querySelectorAll('button, div, li'))
-                           .find(el => el.innerText === '次へ' && !el.classList.contains('css-5ej4ii'));
-      if (nextBtn && !nextBtn.innerText.includes('disabled')) {
+                           .find(el => el.innerText === '次へ');
+      if (nextBtn && !nextBtn.innerText.includes('disabled') && !nextBtn.classList.contains('disabled')) {
         nextBtn.click();
-        return true;
+        return "clicked";
       }
-      return false;
+      return "not_found_or_disabled";
     });
-
-    if (hasNextPage) {
+    if (nextBtnResult === "clicked") {
+      console.log(`${store} 次のページ(${pageNum}+1)へ進みます...`);
       await new Promise(r => setTimeout(r, 4000));
       pageNum++;
     } else {
-      console.log(`${store} ${targetDate} は見つかりませんでした。`);
+      console.log(`${store} ターゲットが見つからないまま終了（次へボタンなし）`);
       break;
     }
   }
+// 最後に必ずスクリーンショットを撮って、何が見えていたか証拠を残す
+  await page.screenshot({ path: `debug_scan_${store}.png`, fullPage: false });
+}
 
   // --- ⓷ 見つかった場合のみ、ダウンロード操作へ ---
   if (foundStats) {
