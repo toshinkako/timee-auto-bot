@@ -77,6 +77,9 @@ let sendSlack = true;
 /* 店舗ループ */
 for(const CLIENT_ID of CLIENT_IDS){
   const store = STORE_NAMES[CLIENT_ID];
+    // 日付（例: "2026年3月28日"）を指定して、その日の人数情報を取得する関数
+  const targetDate = "2026年3月19日"; // ここを動的に変えられるようにします
+
 
   const downloadPath = process.cwd();
   fs.readdirSync(downloadPath).forEach(f => {
@@ -215,8 +218,6 @@ await page.screenshot({ path: `final_scan_${store}.png`, fullPage: true });
   
 
   
-  // 日付（例: "2026年3月28日"）を指定して、その日の人数情報を取得する関数
-  const targetDate = "2026年3月19日"; // ここを動的に変えられるようにします
 
   const workerStats = await page.evaluate((dateStr) => {
     const allRows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
