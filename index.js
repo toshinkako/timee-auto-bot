@@ -132,6 +132,38 @@ for(const CLIENT_ID of CLIENT_IDS){
     await page.screenshot({ path: `error_${store}_toggle_fail.png` });
   }
 
+  // デバッグ用のメイン処理
+  const debugListContent = async (tag) => {
+    console.log(`[DEBUG - ${tag}] ${store} 全行スキャン開始...`);
+    const rowsData = await page.evaluate(() => {
+      const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
+      return rows.map((row, index) => {
+        const dateSpan2 = row.querySelector('span.css-1r5gb7q');
+        const cells2 = Array.from(row.querySelectorAll('td'));
+        const workerCell2 = cells2.find(td => td.innerText.includes('人'));
+        return {
+                index: index + 1,
+                date: dateSpan2 ? dateSpan2.innerText.trim() : "日付不明",
+                worker: workerCell2 ? workerCell2.innerText.trim() : "人数不明"
+        };
+      });
+    });
+    if (rowsData2.length === 0) {
+        console.log(`[DEBUG - ${tag}] ${store} 行が見つかりませんでした。`);
+    } else {
+        rowsData2.forEach(data => {
+            console.log(`[${tag}] 行${data.index}: ${data.date} | ${data.worker}`);
+        });
+    }
+    await page.screenshot({ path: `debug_${store}_${tag}.png` });
+  };
+  // --- 実行部分 ---
+  // 1. 日付指定あり（URL遷移後）の状態でチェック
+  await debugListContent("日付指定あり");
+
+  
+
+  
   // 日付（例: "2026年3月28日"）を指定して、その日の人数情報を取得する関数
   const targetDate = "2026年3月19日"; // ここを動的に変えられるようにします
 
