@@ -67,7 +67,7 @@ const yyyy = parts.find(p => p.type === 'year').value;
 const mm = parts.find(p => p.type === 'month').value;
 const dd = parts.find(p => p.type === 'day').value; 
 const date = `${yyyy}/${mm}/${dd}`;
-const targetDateStr = `${yyyy}年${mm}月${dd}日`;
+//const targetDateStr = `${yyyy}年${mm}月${dd}日`;
 const time = jstNow.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
 
 let message = `【Timee勤務確認】\n  ${date} ${time}\n`;
@@ -135,39 +135,35 @@ for(const CLIENT_ID of CLIENT_IDS){
   // 日付（例: "2026年3月28日"）を指定して、その日の人数情報を取得する関数
   const targetDate = "2026年3月19日"; // ここを動的に変えられるようにします
 
-  const debugInfo = await page.evaluate((dateStr) => {
-      const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
-      const foundRow = rows.find(row => row.innerText.includes(dateStr));
-      if (!foundRow) return { status: "date_not_found", date: dateStr };
-      const cells = Array.from(foundRow.querySelectorAll('td'));
-      const workerCell = cells.find(td => td.innerText.includes('人'));
-      return {
-        status: "success",
-        date: dateStr,
-        fullText: foundRow.innerText.replace(/\n/g, ' '), // 行全体のテキスト
-        workerCellText: workerCell ? workerCell.innerText.trim() : "NOT_FOUND"
-      };
-    }, targetDate);
-    if (debugInfo.status === "success") {
-      console.log(`[DEBUG] ${store} 対象行テキスト: ${debugInfo.fullText}`);
-      console.log(`[DEBUG] ${store} workerCell内容: ${debugInfo.workerCellText}`);
-    } else {
-      console.log(`[DEBUG] ${store} ${targetDate} の行が見つかりませんでした。`);
-    }
-    const screenshotPath = `debug_${store}_list_view.png`;
-    await page.screenshot({ path: screenshotPath, fullPage: false });
-    console.log(`${store} スクリーンショットを保存しました: ${screenshotPath}`);
-  
-  
-  
   const workerStats = await page.evaluate((dateStr) => {
-    const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
-    for (const row of rows) {
-    if (row.innerText.includes(dateStr)) {
-      const cells = Array.from(row.querySelectorAll('td'));
-      const workerCell = cells.find(td => td.innerText.includes('人'));
+    const allRows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
+    const targetRow = allRows.find(row => {
+      const dateSpans = Array.from(row.querySelectorAll('span.css-1r5gb7q'));
+      return dateSpans.some(span => span.innerText.includes(dateStr));
+    });
+    if (!targetRow) return null;
+    const cells = Array.from(targetRow.querySelectorAll('td'));
+    const workerCell = cells.find(td => td.innerText.includes('人'));
+    return {
+      found: true,
+      text: workerCell ? workerCell.innerText.trim() : "0 / 0人",
+      allRowText: targetRow.innerText // デバッグ用
+    };
+  }, targetDate);
+  if (workerStats) {
+    console.log(`[SUCCESS] ${store} ${targetDate} を発見: ${workerStats.text}`);
+  } else {
+  console.log(`[FAILED] ${store} 現在のページに ${targetDate} は表示されていません。`);
+  // ここで「次へ」ボタンを押すか、スクショで「何が表示されているか」再確認が必要です
+      const screenshotPath = `debug_${store}_list_view.png`;
+      await page.screenshot({ path: screenshotPath, fullPage: false });
+      console.log(`${store} スクリーンショットを保存しました: ${screenshotPath}`);
+  }
+
+      
+  
+  /*
       if (workerCell) {
-        const match = workerCell.innerText.match(/(\d+)\s*\/\s*(\d+)/);
         if (match) {
           return {
             date: dateStr,
@@ -177,11 +173,8 @@ for(const CLIENT_ID of CLIENT_IDS){
           };
         }
       }
-    }
-  }
-  return null;
-}, targetDate);
-
+  */
+      
   
 }
 
