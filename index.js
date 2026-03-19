@@ -101,36 +101,42 @@ for(const CLIENT_ID of CLIENT_IDS){
 //  const offeringsUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings`;
   const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
   const offeringsUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings?date_from=${dateParam}&date_to=${dateParam}`;
-  
-  console.log(`${store} 求人一覧へ遷移中...`);
+  console.log(`${store} 求人一覧へ遷移中...`, offeringsUrl);
   await page.goto(offeringsUrl, { waitUntil: "networkidle2" });
   await new Promise(r => setTimeout(r, 5000));
 
-  // 1. リスト表示に切り替え
+
+  // --- ⓵ リスト表示に切り替え ---
   try {
-    console.log(`${store} リスト表示へ切り替え試行...`);
+    console.log(`${store} リスト表示への切り替えを試行...`);
     await page.evaluate(() => {
-      // 1. material-symbols-rounded で中身が 'list' のものを探す
-      const icons = Array.from(document.querySelectorAll('.material-symbols-rounded'));
-      const listIcon = icons.find(el => el.innerText.trim() === 'list');
-      const btn = listIcon?.closest('button');
-      if (btn) {
-        btn.click();
-      } else {
-        // 2. セレクターで直接狙う（現在のTimeeのボタン構造）
-        const fallbackBtn = document.querySelector('button[type="button"] .material-symbols-rounded');
-        if (fallbackBtn && fallbackBtn.innerText.trim() === 'list') {
-            fallbackBtn.closest('button').click();
-    console.log('use/fallbackbtn')
+      const listBtn = document.querySelector('button.css-1lr1s25');
+      if (listBtn) {
+        const isAlreadySelected = window.getComputedStyle(listBtn).color === 'rgb(0, 111, 232)';
+        if (!isAlreadySelected) {
+          listBtn.click();
+          console.log('リスト表示ボタンをクリックしました');
+        } else {
+          console.log('すでにリスト表示です');
         }
-      }      
+      } else {
+        const buttons = Array.from(document.querySelectorAll('button'));
+        const fallbackBtn = buttons.find(b => b.innerText.includes('リスト表示'));
+        if (fallbackBtn) fallbackBtn.click();
+    console.log('use/fallbackbtn')
+      }
     });
-    await page.waitForSelector('tr, .css-1wwuwwa', { timeout: 8000 }).catch(() => {
-        console.log("リスト要素が見つかりません。カレンダーのままの可能性があります。");
+    await page.waitForSelector('tr.css-1wwuwwa, tr', { timeout: 8000 }).catch(() => {
+      console.log("リスト要素の読み込みに時間がかかっています...");
     });
-    await new Promise(r => setTimeout(r, 3000));
-  } catch (e) { console.log("リスト切り替え失敗:", e.message); }
-      
+    await new Promise(r => setTimeout(r, 2000));
+    console.log(`${store} リスト表示の確認完了`);
+  } catch (e) {
+    console.log(`${store} リスト切り替え中にエラー:`, e.message);
+    await page.screenshot({ path: `error_${store}_list_toggle.png` });
+  }
+
+  
  // ダウンロード設定
   ///const downloadPath = process.cwd();
   const client = await page.target().createCDPSession();
