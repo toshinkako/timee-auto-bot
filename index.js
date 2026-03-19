@@ -131,7 +131,33 @@ for(const CLIENT_ID of CLIENT_IDS){
     console.log(`${store} リスト切り替え失敗:`, e.message);
     await page.screenshot({ path: `error_${store}_toggle_fail.png` });
   }
-    
+
+  // 日付（例: "2026年3月28日"）を指定して、その日の人数情報を取得する関数
+  const targetDate = "2026年3月19日"; // ここを動的に変えられるようにします
+
+  const workerStats = await page.evaluate((dateStr) => {
+    const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
+    for (const row of rows) {
+    if (row.innerText.includes(dateStr)) {
+      const cells = Array.from(row.querySelectorAll('td'));
+      const workerCell = cells.find(td => td.innerText.includes('人'));
+      if (workerCell) {
+        const match = workerCell.innerText.match(/(\d+)\s*\/\s*(\d+)/);
+        if (match) {
+          return {
+            date: dateStr,
+            current: match[1], // 確定人数
+            total: match[2],   // 募集定員
+            raw: workerCell.innerText.trim()
+          };
+        }
+      }
+    }
+  }
+  return null;
+}, targetDate);
+
+  
 }
 
 /*
