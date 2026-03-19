@@ -1,3 +1,79 @@
+const puppeteer = require("puppeteer-core");
+const fs = require("fs");
+const XLSX = require("xlsx");
+const { google } = require("googleapis");
+
+const CLIENT_IDS = ["325161","325162"];
+const STORE_NAMES = { "325161":"大山","325162":"一宮"};
+const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
+
+(async () => {
+  const browser = await puppeteer.launch({
+    executablePath:"/usr/bin/google-chrome",
+    headless:"new",
+    args:["--no-sandbox","--disable-setuid-sandbox"]
+});
+
+const page = await browser.newPage();
+await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+await page.setExtraHTTPHeaders({ 'Accept-Language': 'ja-JP,ja;q=0.9' });
+await page.setDefaultNavigationTimeout(60000);
+
+console.log("Timeeログイン開始");
+const loginUrls = [
+ "https://app-new.taimee.co.jp/login",
+ "https://app.taimee.co.jp/login",
+ "https://app-new.taimee.co.jp/account"
+];
+
+let loaded=false;
+for(const url of loginUrls){
+  try{
+    console.log(`アクセス試行中: ${url}`);
+    await page.goto(url,{waitUntil:"networkidle2"});
+    await page.waitForSelector("input",{timeout:5000});
+    console.log("ログイン　ページ:",url);
+    loaded=true;
+    break;
+ }catch(e){}
+}
+if(!loaded) {
+  await page.screenshot({ path: 'login_error_debug.png' });
+  throw new Error("ログインページ取得失敗");
+}
+
+await page.type( 'input[type="email"], input[name*="email"], input[placeholder*="メール"]',process.env.TAIMEE_EMAIL);
+await page.type('input[type="password"]',process.env.TAIMEE_PASSWORD);
+await Promise.all([
+  page.waitForNavigation({waitUntil:"networkidle2"}),
+  page.click('button[type="submit"]')
+]);
+console.log("ログイン成功");
+
+await page.goto("https://app-new.taimee.co.jp/dashboard", {
+ waitUntil: "networkidle2"
+});
+ console.log("ダッシュボードを表示しました");
+await new Promise(r => setTimeout(r, 3000));
+  
+/* 現在時刻 */
+const now = new Date();
+const jstNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
+const hour = jstNow.getHours();
+const MODE = hour < 12 ? "morning" : "workcheck";
+
+const parts = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "numeric", day: "numeric" }).formatToParts(now);
+const yyyy = parts.find(p => p.type === 'year').value;
+const mm = parts.find(p => p.type === 'month').value;
+const dd = parts.find(p => p.type === 'day').value; 
+const date = `${yyyy}/${mm}/${dd}`;
+//const targetDateStr = `${yyyy}年${mm}月${dd}日`;
+const time = jstNow.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
+
+let message = `【Timee勤務確認】\n  ${date} ${time}\n`;
+let anyStoreSent = false; // 少なくとも1店舗が更新されたか
+let sendSlack = true;
+
 for(const CLIENT_ID of CLIENT_IDS){
   const store = STORE_NAMES[CLIENT_ID];
   const targetDate = "2026年3月19日"; // ここで定義
