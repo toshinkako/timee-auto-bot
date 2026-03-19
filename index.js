@@ -37,10 +37,7 @@ for(const url of loginUrls){
     break;
  }catch(e){}
 }
-if(!loaded) {
-  await page.screenshot({ path: 'login_error_debug.png' });
-  throw new Error("ログインページ取得失敗");
-}
+if(!loaded) throw new Error("ログインページ取得失敗");
 
 await page.type( 'input[type="email"], input[name*="email"], input[placeholder*="メール"]',process.env.TAIMEE_EMAIL);
 await page.type('input[type="password"]',process.env.TAIMEE_PASSWORD);
@@ -50,11 +47,11 @@ await Promise.all([
 ]);
 console.log("ログイン成功");
 
-await page.goto("https://app-new.taimee.co.jp/dashboard", {
- waitUntil: "networkidle2"
-});
- console.log("ダッシュボードを表示しました");
-await new Promise(r => setTimeout(r, 3000));
+//await page.goto("https://app-new.taimee.co.jp/dashboard", {
+// waitUntil: "networkidle2"
+//});
+// console.log("ダッシュボードを表示しました");
+//await new Promise(r => setTimeout(r, 3000));
   
 /* 現在時刻 */
 const now = new Date();
@@ -78,23 +75,19 @@ let sendSlack = true;
 for(const CLIENT_ID of CLIENT_IDS){
   const store = STORE_NAMES[CLIENT_ID];
   const targetDate = "2026年3月19日"; // ここで定義
+//  const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+  const dateParam = "2026-03-19"; 
   
   const downloadPath = process.cwd();
   fs.readdirSync(downloadPath).forEach(f => {
     if(f.endsWith('.xlsx')) fs.unlinkSync(f);
   });
 
-//  const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
-  const dateParam = "2026-03-19"; 
   const offeringsUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings?date_from=${dateParam}&date_to=${dateParam}`;
   console.log(`${store} 求人一覧へ遷移中...スキャン開始 ---`);  
   console.log(`URL: ${offeringsUrl}`);
   await page.goto(offeringsUrl, { waitUntil: "networkidle2" });
   await new Promise(r => setTimeout(r, 5000)); // 描画待ち
-
-  
-  await new Promise(r => setTimeout(r, 3000));
-  
   
   // --- ⓵ リスト表示に切り替え ---
   try {
@@ -105,11 +98,10 @@ for(const CLIENT_ID of CLIENT_IDS){
       if (listBtn) { listBtn.click(); return "clicked"; }
       return "not_found";
     });
-    console.log(`${store} リスト反映待ち...`);
     await page.waitForSelector('table', { timeout: 10000 });
     await new Promise(r => setTimeout(r, 3000));
   } catch (e) {
-    console.log(`${store} リスト切り替え失敗または既にリスト表示です`);
+    console.log(`${store} リスト表示への切り替えをスキップ`);
   }
 
   // --- ⓶ ページをめくってターゲットの日付を探す ---
@@ -121,7 +113,6 @@ for(const CLIENT_ID of CLIENT_IDS){
     const pageInfo = await page.evaluate(() => {
       const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
       if (rows.length === 0) return "行が見つかりません";
-      // 最初の行の日付を取得
       const firstRow = rows[0];
       const dateSpan = firstRow.querySelector('span.css-1r5gb7q') || firstRow;
       return `最初の行の日付: ${dateSpan.innerText.trim().replace(/\n/g, ' ')}`;
@@ -138,7 +129,7 @@ for(const CLIENT_ID of CLIENT_IDS){
         const workerCell = Array.from(targetRow.querySelectorAll('td')).find(td => td.innerText.includes('人'));
         return { found: true, text: workerCell ? workerCell.innerText.trim() : "人数不明" };
       }
-      return { found: true, text: workerCell ? workerCell.innerText.trim() : "0 / 0人" };
+      return { found: false };
     }, targetDate);
 
     if (result.found) {
@@ -147,28 +138,24 @@ for(const CLIENT_ID of CLIENT_IDS){
       break;
     }
   // 「次へ」ボタンの判定とクリック
-    const nextBtnResult = await page.evaluate(() => {
+    const hasNextPage = await page.evaluate(() => {
       const nextBtn = Array.from(document.querySelectorAll('button, div, li'))
-                           .find(el => el.innerText === '次へ');
+                                     .find(el => el.innerText === '次へ');
       if (nextBtn && !nextBtn.innerText.includes('disabled') && !nextBtn.classList.contains('disabled')) {
         nextBtn.click();
         return "clicked";
       }
-      return "not_found_or_disabled";
+      return false;
     });
-    if (nextBtnResult === "clicked") {
+    if (hasNextPage) {
       console.log(`${store} 次のページ(${pageNum}+1)へ進みます...`);
       await new Promise(r => setTimeout(r, 4000));
       pageNum++;
     } else {
-      console.log(`${store} ターゲットが見つからないまま終了（次へボタンなし）`);
+      console.log(`${store} ターゲットが見つからないまま終了`);
       break;
     }
   }
-// 最後に必ずスクリーンショットを撮って、何が見えていたか証拠を残す
-  await page.screenshot({ path: `debug_scan_${store}.png`, fullPage: false });
-}
-
   // --- ⓷ 見つかった場合のみ、ダウンロード操作へ ---
   if (foundStats) {
     try {
@@ -200,6 +187,7 @@ for(const CLIENT_ID of CLIENT_IDS){
     }
   }
   
-  // 以降、既存のファイル処理(XLSX解析等)に続く...
-}
+  // 最後に必ずスクリーンショットを撮って、何が見えていたか証拠を残す
+  await page.screenshot({ path: `debug_scan_${store}.png`, fullPage: false });
+
 })();
