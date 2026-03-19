@@ -136,7 +136,7 @@ for(const CLIENT_ID of CLIENT_IDS){
     console.log(`${store} リスト切り替え中にエラー:`, e.message);
     await page.screenshot({ path: `error_${store}_list_toggle.png` });
   }
-
+}
 
 /*
  // ダウンロード設定
@@ -306,9 +306,10 @@ if (SLACK_WEBHOOK && anyStoreSent) {
     });
     console.log("Slack通知完了");
  }
+*/
+
   await browser.close();
 })();
-*/
 /* --- 関数群 --- */
 function calcIndividualWork(s) {
   if (!s.start || !s.end) return "0.00";
