@@ -132,6 +132,59 @@ for(const CLIENT_ID of CLIENT_IDS){
     await page.screenshot({ path: `error_${store}_toggle_fail.png` });
   }
 
+  // --- ページをめくってターゲットの日付を探すロジック ---
+  let foundStats = null;
+  let pageNum = 1;
+  while (pageNum <= 5) { // 最大5ページまで探す（無限ループ防止）
+    console.log(`${store} ${pageNum}ページ目をスキャン中...`);
+    // 現在のページ内を検索
+    const result = await page.evaluate((dateStr) => {
+      const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
+      const targetRow = rows.find(row => {
+        const dateSpans = Array.from(row.querySelectorAll('span.css-1r5gb7q'));
+        return dateSpans.some(span => span.innerText.includes(dateStr));
+      });
+      if (targetRow) {
+        const cells = Array.from(targetRow.querySelectorAll('td'));
+        const workerCell = cells.find(td => td.innerText.includes('人'));
+        return {
+          found: true,
+          text: workerCell ? workerCell.innerText.trim() : "0 / 0人"
+        };
+      }
+      return { found: false };
+    }, targetDate);
+    if (result.found) {
+      foundStats = result;
+      console.log(`[SUCCESS] ${store} ${targetDate} を発見: ${result.text}`);
+      break;
+    }
+    // 見つからない場合は「次へ」ボタンを探してクリック
+    const hasNextPage = await page.evaluate(() => {
+    const nextBtn = Array.from(document.querySelectorAll('div, li, button'))
+                         .find(el => el.innerText === '次へ' && !el.classList.contains('css-5ej4ii')); // 「前へ」のクラスを除外
+    if (nextBtn && !nextBtn.classList.contains('disabled')) {
+      nextBtn.click();
+      return true;
+    }
+    return false;
+  });
+  if (hasNextPage) {
+    await new Promise(r => setTimeout(r, 4000)); // 読み込み待機
+    pageNum++;
+  } else {
+    console.log(`${store} 最後のページまで探しましたが ${targetDate} はありませんでした。`);
+    break;
+  }
+}
+
+// 最終結果のスクショ
+await page.screenshot({ path: `final_scan_${store}.png`, fullPage: true });
+
+    
+
+    
+  
   // デバッグ用のメイン処理
   const debugListContent = async (tag) => {
     console.log(`[DEBUG - ${tag}] ${store} 全行スキャン開始...`);
