@@ -113,7 +113,6 @@ for(const CLIENT_ID of CLIENT_IDS){
     await page.evaluate(() => {
       const listBtn = document.querySelector('button.css-1lr1s25');
       if (listBtn) {
-console.log('listBtnあり',listBtn)
         const isAlreadySelected = window.getComputedStyle(listBtn).color === 'rgb(0, 111, 232)';
         if (!isAlreadySelected) {
           listBtn.click();
@@ -122,7 +121,6 @@ console.log('listBtnあり',listBtn)
           console.log('すでにリスト表示です');
         }
       } else {
-console.log('listBtnなし')
         const buttons = Array.from(document.querySelectorAll('button'));
         const fallbackBtn = buttons.find(b => b.innerText.includes('リスト表示'));
         if (fallbackBtn) fallbackBtn.click();
@@ -134,6 +132,8 @@ console.log('listBtnなし')
     });
     await new Promise(r => setTimeout(r, 2000));
     console.log(`${store} リスト表示の確認完了`);
+    await page.screenshot({ path: `debug_${store}_after_list_toggle.png` });
+    console.log(`${store} デバッグ用スクリーンショットを保存しました`);
   } catch (e) {
     console.log(`${store} リスト切り替え中にエラー:`, e.message);
     await page.screenshot({ path: `error_${store}_list_toggle.png` });
