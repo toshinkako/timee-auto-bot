@@ -136,7 +136,8 @@ for(const CLIENT_ID of CLIENT_IDS){
     await page.screenshot({ path: `error_${store}_list_toggle.png` });
   }
 
-  
+
+return;
  // ダウンロード設定
   ///const downloadPath = process.cwd();
   const client = await page.target().createCDPSession();
