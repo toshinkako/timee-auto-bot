@@ -202,5 +202,4 @@ for(const CLIENT_ID of CLIENT_IDS){
   
   // 以降、既存のファイル処理(XLSX解析等)に続く...
 }
-    await browser.close();
 })();
