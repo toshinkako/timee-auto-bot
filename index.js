@@ -189,5 +189,8 @@ for(const CLIENT_ID of CLIENT_IDS){
   
   // 最後に必ずスクリーンショットを撮って、何が見えていたか証拠を残す
   await page.screenshot({ path: `debug_scan_${store}.png`, fullPage: false });
+  } // ← ここで店舗ループ終了
+
+  await browser.close();
 
 })();
