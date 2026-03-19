@@ -157,9 +157,7 @@ for(const CLIENT_ID of CLIENT_IDS){
     }
     await page.screenshot({ path: `debug_${store}_${tag}.png` });
   };
-  // --- 実行部分 ---
-  // 1. 日付指定あり（URL遷移後）の状態でチェック
-  await debugListContent("日付指定あり");
+
 
   
 
