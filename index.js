@@ -110,34 +110,28 @@ for(const CLIENT_ID of CLIENT_IDS){
   // --- ⓵ リスト表示に切り替え ---
   try {
     console.log(`${store} リスト表示への切り替えを試行...`);
-    await page.evaluate(() => {
-      const listBtn = document.querySelector('button.css-1lr1s25');
+    await page.evaluate(async () => {
+      const buttons = Array.from(document.querySelectorAll('button'));
+      const listBtn = buttons.find(b => {
+        const text = b.innerText || "";
+        return text.includes('リスト表示');
+      });
       if (listBtn) {
-        const isAlreadySelected = window.getComputedStyle(listBtn).color === 'rgb(0, 111, 232)';
-        if (!isAlreadySelected) {
-          listBtn.click();
-          console.log('リスト表示ボタンをクリックしました');
-        } else {
-          console.log('すでにリスト表示です');
-        }
-      } else {
-        const buttons = Array.from(document.querySelectorAll('button'));
-        const fallbackBtn = buttons.find(b => b.innerText.includes('リスト表示'));
-        if (fallbackBtn) fallbackBtn.click();
-    console.log('use/fallbackbtn')
+        listBtn.click();
+        return "clicked";
       }
+      return "not_found";
     });
-    await page.waitForSelector('tr.css-1wwuwwa, tr', { timeout: 8000 }).catch(() => {
-      console.log("リスト要素の読み込みに時間がかかっています...");
-    });
-    await new Promise(r => setTimeout(r, 2000));
+    console.log(`${store} リスト反映待ち...`);
+    await page.waitForSelector('table', { timeout: 10000 });
+    await new Promise(r => setTimeout(r, 5000));
     console.log(`${store} リスト表示の確認完了`);
-    await page.screenshot({ path: `debug_${store}_after_list_toggle.png` });
-    console.log(`${store} デバッグ用スクリーンショットを保存しました`);
+    await page.screenshot({ path: `debug_${store}_list_result.png`, fullPage: true });
   } catch (e) {
-    console.log(`${store} リスト切り替え中にエラー:`, e.message);
-    await page.screenshot({ path: `error_${store}_list_toggle.png` });
+    console.log(`${store} リスト切り替え失敗:`, e.message);
+    await page.screenshot({ path: `error_${store}_toggle_fail.png` });
   }
+    
 }
 
 /*
