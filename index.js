@@ -74,20 +74,19 @@ let sendSlack = true;
 
 for(const CLIENT_ID of CLIENT_IDS){
   const store = STORE_NAMES[CLIENT_ID];
-  const targetDate = "2026年3月19日"; // ここで定義
-//  const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
-  const dateParam = "2026-03-19"; 
+  const targetDate = "3月19日";
   
   const downloadPath = process.cwd();
   fs.readdirSync(downloadPath).forEach(f => {
     if(f.endsWith('.xlsx')) fs.unlinkSync(f);
   });
 
+  //  const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+  const dateParam = "2026-03-19"; 
   const offeringsUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings?date_from=${dateParam}&date_to=${dateParam}`;
-  console.log(`${store} 求人一覧へ遷移中...スキャン開始 ---`);  
-  console.log(`URL: ${offeringsUrl}`);
+  console.log(`${store} 求人一覧へ遷移中...スキャン開始 ---`); 
   await page.goto(offeringsUrl, { waitUntil: "networkidle2" });
-  await new Promise(r => setTimeout(r, 5000)); // 描画待ち
+  await new Promise(r => setTimeout(r, 5000));
   
   // --- ⓵ リスト表示に切り替え ---
   try {
@@ -98,7 +97,7 @@ for(const CLIENT_ID of CLIENT_IDS){
       if (listBtn) { listBtn.click(); return "clicked"; }
       return "not_found";
     });
-    await page.waitForSelector('table', { timeout: 10000 });
+    await page.waitForSelector('tr.css-1wwuwwa', { timeout: 10000 }).catch(() => {});
     await new Promise(r => setTimeout(r, 3000));
   } catch (e) {
     console.log(`${store} リスト表示への切り替えをスキップ`);
@@ -108,51 +107,37 @@ for(const CLIENT_ID of CLIENT_IDS){
   let foundStats = null;
   let pageNum = 1;
   while (pageNum <= 5) {
-    console.log(`${store} ${pageNum}ページ目をスキャン中...`);
-    // 【追加】現在のページにある最初の日付をログに出す
-    const pageInfo = await page.evaluate(() => {
-      const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
-      if (rows.length === 0) return "行が見つかりません";
-      const firstRow = rows[0];
-      const dateSpan = firstRow.querySelector('span.css-1r5gb7q') || firstRow;
-      return `最初の行の日付: ${dateSpan.innerText.trim().replace(/\n/g, ' ')}`;
-    });
-    console.log(`${store} [Page ${pageNum}] ${pageInfo}`);
-    await page.screenshot({ path: `scan_${store}_${pageNum}.png`, fullPage: true });
-
-
-    // ターゲットの検索
-    const result = await page.evaluate((dateStr) => {
+    const pageData = await page.evaluate((dateStr) => {
       const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
       const targetRow = rows.find(row => row.innerText.includes(dateStr));
       if (targetRow) {
         const workerCell = Array.from(targetRow.querySelectorAll('td')).find(td => td.innerText.includes('人'));
-        return { found: true, text: workerCell ? workerCell.innerText.trim() : "人数不明" };
+        return { found: true, text: workerCell ? workerCell.innerText.trim() : "0 / 0人" };
       }
-      return { found: false };
+      // デバッグ用に最初の行のテキストを返す
+      const firstRow = rows[0] ? rows[0].innerText.replace(/\s+/g, ' ').substring(0, 40) : "行なし";
+      return { found: false, firstRow: firstRow };      
     }, targetDate);
 
-    if (result.found) {
-      foundStats = result;
-      console.log(`[SUCCESS] ${store} ${targetDate} を発見: ${result.text}`);
+    if (pageData.found) {
+      foundStats = pageData;
+      console.log(`[SUCCESS] ${store} ${targetDate} を発見: ${pageData.text}`);
       break;
+    } else {
+      console.log(`${store} [P${pageNum}] 見つかりません。先頭行: ${pageData.firstRow}`);
     }
   // 「次へ」ボタンの判定とクリック
     const hasNextPage = await page.evaluate(() => {
       const nextBtn = Array.from(document.querySelectorAll('button, div, li'))
-                                     .find(el => el.innerText === '次へ');
-      if (nextBtn && !nextBtn.innerText.includes('disabled') && !nextBtn.classList.contains('disabled')) {
-        nextBtn.click();
-        return "clicked";
-      }
+                                     .find(b => b.innerText === '次へ' && !b.disabled);
+      if (nextBtn) { nextBtn.click(); return true; }
       return false;
     });
     if (hasNextPage) {
-      console.log(`${store} 次のページ(${pageNum}+1)へ進みます...`);
+      console.log(`${store} 次のページへ進みます...`);
       await new Promise(r => setTimeout(r, 4000));
       pageNum++;
     } else {
-      console.log(`${store} ターゲットが見つからないまま終了`);
       break;
     }
   }
