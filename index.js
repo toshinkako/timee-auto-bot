@@ -113,6 +113,7 @@ for(const CLIENT_ID of CLIENT_IDS){
     await page.evaluate(() => {
       const listBtn = document.querySelector('button.css-1lr1s25');
       if (listBtn) {
+console.log('listBtnあり',listBtn)
         const isAlreadySelected = window.getComputedStyle(listBtn).color === 'rgb(0, 111, 232)';
         if (!isAlreadySelected) {
           listBtn.click();
@@ -121,6 +122,7 @@ for(const CLIENT_ID of CLIENT_IDS){
           console.log('すでにリスト表示です');
         }
       } else {
+console.log('listBtnなし')
         const buttons = Array.from(document.querySelectorAll('button'));
         const fallbackBtn = buttons.find(b => b.innerText.includes('リスト表示'));
         if (fallbackBtn) fallbackBtn.click();
