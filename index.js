@@ -37,7 +37,10 @@ for(const url of loginUrls){
     break;
  }catch(e){}
 }
-if(!loaded) throw new Error("ログインページ取得失敗");
+if(!loaded) {
+  await page.screenshot({ path: 'login_error_debug.png' });
+  throw new Error("ログインページ取得失敗");
+}
 
 await page.type( 'input[type="email"], input[name*="email"], input[placeholder*="メール"]',process.env.TAIMEE_EMAIL);
 await page.type('input[type="password"]',process.env.TAIMEE_PASSWORD);
@@ -47,11 +50,11 @@ await Promise.all([
 ]);
 console.log("ログイン成功");
 
-//await page.goto("https://app-new.taimee.co.jp/dashboard", {
-// waitUntil: "networkidle2"
-//});
-// console.log("ダッシュボードを表示しました");
-//await new Promise(r => setTimeout(r, 3000));
+await page.goto("https://app-new.taimee.co.jp/dashboard", {
+ waitUntil: "networkidle2"
+});
+ console.log("ダッシュボードを表示しました");
+await new Promise(r => setTimeout(r, 3000));
   
 /* 現在時刻 */
 const now = new Date();
@@ -71,111 +74,334 @@ let message = `【Timee勤務確認】\n  ${date} ${time}\n`;
 let anyStoreSent = false; // 少なくとも1店舗が更新されたか
 let sendSlack = true;
 
-
+/* 店舗ループ */
 for(const CLIENT_ID of CLIENT_IDS){
   const store = STORE_NAMES[CLIENT_ID];
-  const targetDate = "3月19日";
-  
+
   const downloadPath = process.cwd();
   fs.readdirSync(downloadPath).forEach(f => {
     if(f.endsWith('.xlsx')) fs.unlinkSync(f);
   });
 
-  //  const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
-  const dateParam = "2026-03-19"; 
+/*
+  // 2. 時間帯によって遷移先とモードを決定
+  let targetUrl = "";
+  let pageMode = "";
+  if (hour < 12) {
+    targetUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings`;
+    pageMode = "OFFERINGS";
+    console.log(`${store} [午前モード] 求人一覧へ遷移中...`);
+  } else {
+    const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+    targetUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/users/attendings?date=${dateParam}`;
+    pageMode = "ATTENDINGS";
+    console.log(`${store} [午後モード] 就業予定表へ遷移中...`);
+  }
+*/
+  
+//  const offeringsUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings`;
+  const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
   const offeringsUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings?date_from=${dateParam}&date_to=${dateParam}`;
-  console.log(`${store} 求人一覧へ遷移中...スキャン開始 ---`); 
+  console.log(`${store} 求人一覧へ遷移中...`, offeringsUrl);
   await page.goto(offeringsUrl, { waitUntil: "networkidle2" });
   await new Promise(r => setTimeout(r, 5000));
-  
+
+
   // --- ⓵ リスト表示に切り替え ---
   try {
     console.log(`${store} リスト表示への切り替えを試行...`);
     await page.evaluate(async () => {
       const buttons = Array.from(document.querySelectorAll('button'));
-      const listBtn = buttons.find(b => (b.innerText || "").includes('リスト表示'));
-      if (listBtn) { listBtn.click(); return "clicked"; }
+      const listBtn = buttons.find(b => {
+        const text = b.innerText || "";
+        return text.includes('リスト表示');
+      });
+      if (listBtn) {
+        listBtn.click();
+        return "clicked";
+      }
       return "not_found";
     });
-    await page.waitForSelector('tr.css-1wwuwwa', { timeout: 10000 }).catch(() => {});
-    await new Promise(r => setTimeout(r, 3000));
+    console.log(`${store} リスト反映待ち...`);
+    await page.waitForSelector('table', { timeout: 10000 });
+    await new Promise(r => setTimeout(r, 5000));
+    console.log(`${store} リスト表示の確認完了`);
+    await page.screenshot({ path: `debug_${store}_list_result.png`, fullPage: true });
   } catch (e) {
-    console.log(`${store} リスト表示への切り替えをスキップ`);
+    console.log(`${store} リスト切り替え失敗:`, e.message);
+    await page.screenshot({ path: `error_${store}_toggle_fail.png` });
   }
 
-  // --- ⓶ ページをめくってターゲットの日付を探す ---
-  let foundStats = null;
-  let pageNum = 1;
-  while (pageNum <= 5) {
-    const pageData = await page.evaluate((dateStr) => {
-      const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
-      const targetRow = rows.find(row => row.innerText.includes(dateStr));
-      if (targetRow) {
-        const workerCell = Array.from(targetRow.querySelectorAll('td')).find(td => td.innerText.includes('人'));
-        return { found: true, text: workerCell ? workerCell.innerText.trim() : "0 / 0人" };
-      }
-      // デバッグ用に最初の行のテキストを返す
-      const firstRow = rows[0] ? rows[0].innerText.replace(/\s+/g, ' ').substring(0, 40) : "行なし";
-      return { found: false, firstRow: firstRow };      
-    }, targetDate);
+  // 日付（例: "2026年3月28日"）を指定して、その日の人数情報を取得する関数
+  const targetDate = "2026年3月19日"; // ここを動的に変えられるようにします
 
-    if (pageData.found) {
-      foundStats = pageData;
-      console.log(`[SUCCESS] ${store} ${targetDate} を発見: ${pageData.text}`);
-      break;
-    } else {
-      console.log(`${store} [P${pageNum}] 見つかりません。先頭行: ${pageData.firstRow}`);
-    }
-  // 「次へ」ボタンの判定とクリック
-    const hasNextPage = await page.evaluate(() => {
-      const nextBtn = Array.from(document.querySelectorAll('button, div, li'))
-                                     .find(b => b.innerText === '次へ' && !b.disabled);
-      if (nextBtn) { nextBtn.click(); return true; }
-      return false;
+  const workerStats = await page.evaluate((dateStr) => {
+    const allRows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
+    const targetRow = allRows.find(row => {
+      const dateSpans = Array.from(row.querySelectorAll('span.css-1r5gb7q'));
+      return dateSpans.some(span => span.innerText.includes(dateStr));
     });
-    if (hasNextPage) {
-      console.log(`${store} 次のページへ進みます...`);
-      await new Promise(r => setTimeout(r, 4000));
-      pageNum++;
-    } else {
-      break;
-    }
+    if (!targetRow) return null;
+    const cells = Array.from(targetRow.querySelectorAll('td'));
+    const workerCell = cells.find(td => td.innerText.includes('人'));
+    return {
+      found: true,
+      text: workerCell ? workerCell.innerText.trim() : "0 / 0人",
+      allRowText: targetRow.innerText // デバッグ用
+    };
+  }, targetDate);
+  if (workerStats) {
+    console.log(`[SUCCESS] ${store} ${targetDate} を発見: ${workerStats.text}`);
+  } else {
+  console.log(`[FAILED] ${store} 現在のページに ${targetDate} は表示されていません。`);
+  // ここで「次へ」ボタンを押すか、スクショで「何が表示されているか」再確認が必要です
+      const screenshotPath = `debug_${store}_list_view.png`;
+      await page.screenshot({ path: screenshotPath, fullPage: false });
+      console.log(`${store} スクリーンショットを保存しました: ${screenshotPath}`);
   }
-  // --- ⓷ 見つかった場合のみ、ダウンロード操作へ ---
-  if (foundStats) {
-    try {
-      console.log(`${store} のメニュー操作を開始...`);
-      const clickResult = await page.evaluate(async (dateStr) => {
-        const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
-        const targetRow = rows.find(r => r.innerText.includes(dateStr));
-        if (!targetRow) return { success: false, reason: "行の再取得に失敗" };
 
-        const menuContainer = targetRow.querySelector('[data-testid="split-button-menu"]');
-        const toggleBtn = menuContainer?.querySelector('button');
-        if (!toggleBtn) return { success: false, reason: "メニューボタンなし" };
-
-        toggleBtn.click();
-        await new Promise(r => setTimeout(r, 1500));
-
-        const menuItems = Array.from(document.querySelectorAll('button, li, [role="menuitem"]'));
-        const downloadBtn = menuItems.find(i => i.innerText.includes("1日分"));
-        if (downloadBtn) { downloadBtn.click(); return { success: true }; }
-        return { success: false, reason: "DLボタンなし" };
-      }, targetDate);
-
-      if (clickResult.success) {
-        await new Promise(r => setTimeout(r, 10000)); // DL待機
-        console.log(`${store} Excelダウンロード指示完了`);
-      }
-    } catch (e) {
-      console.log(`${store} メニュー操作エラー:`, e.message);
-    }
-  }
+      
   
-  // 最後に必ずスクリーンショットを撮って、何が見えていたか証拠を残す
-  await page.screenshot({ path: `debug_scan_${store}.png`, fullPage: false });
-  } // ← ここで店舗ループ終了
+  /*
+      if (workerCell) {
+        if (match) {
+          return {
+            date: dateStr,
+            current: match[1], // 確定人数
+            total: match[2],   // 募集定員
+            raw: workerCell.innerText.trim()
+          };
+        }
+      }
+  */
+      
+  
+}
+
+/*
+ // ダウンロード設定
+  ///const downloadPath = process.cwd();
+  const client = await page.target().createCDPSession();
+  await client.send('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: downloadPath, });
+
+  // 2. 当日の全求人行を解析
+const jobData = await page.evaluate((m, d) => { // 引数名を短くして確実に受け取る
+    const results = [];
+    const dateQuery = `${m}月${d}日`; 
+    
+    const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
+    
+    rows.forEach(row => {
+      const text = row.innerText || "";
+      if (text.includes(dateQuery)) {
+*/
+ //       const statusDiv = row.querySelector('div[class*="bg-offeringStatus"]');
+ //       let status = statusDiv ? statusDiv.innerText.trim() : "マッチング中";
+
+ //       const timeMatch = text.match(/(\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})/);
+ //       const workerMatch = text.match(/(\d+)\s*\/\s*(\d+)\s*人/);
+/*        
+        if (timeMatch || workerMatch) {
+          results.push({
+            status: status,
+            timeRange: timeMatch ? timeMatch[0] : "",
+            workerCount: workerMatch ? workerMatch[1] : "0",
+            workerLimit: workerMatch ? workerMatch[2] : "0"
+          });
+        }
+      }
+    });
+    return results;
+  }, mm, dd);
+  
+  console.log(`${store} の取得結果:`, jobData);
+  
+  // 取得結果から vacancy（募集残）を算出
+  let vacancy = "0";
+  if (jobData.length > 0) {
+    const totalCount = jobData.reduce((sum, job) => sum + parseInt(job.workerCount), 0);
+    const totalLimit = jobData.reduce((sum, job) => sum + parseInt(job.workerLimit), 0);
+    vacancy = (totalLimit - totalCount).toString();
+  } else {
+    console.log(`${store} 本日の求人が見つかりませんでした。`);
+    // 取得失敗時は念のためスクリーンショット
+    await page.screenshot({ path: `debug_${store}_no_data.png` });
+    //ontinue;
+  }
+  // 3. 全案件が終了しているかチェック
+  const isAnyJobActive = jobData.some(job => job.status === "稼働中" || job.status === "マッチング中");
+  if (MODE === "workcheck" && isAnyJobActive) {
+    console.log(`${store} まだ稼働中の案件があるためスキップします。`);
+    continue;
+  }
+
+  
+ // ボタンクリック処理
+ try {
+    console.log(`${store} のメニュー操作を開始...`);
+    const clickResult = await page.evaluate(async (mm, dd) => {
+      const dateQuery = `${mm}月${dd}日`;
+      const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
+      
+      // 対象の日付を含む行を探す
+      const targetRow = rows.find(r => r.innerText.includes(dateQuery));
+      if (!targetRow) return { success: false, reason: `日付(${dateQuery})の行が見つかりません` };
+      
+      // その行の中にある split-button-menu を探して、中にある展開ボタンをクリック
+      const menuContainer = targetRow.querySelector('[data-testid="split-button-menu"]');
+      const toggleBtn = menuContainer?.querySelector('button');
+      
+      if (!toggleBtn) return { success: false, reason: "メニューボタンが見つかりません" };
+      
+      toggleBtn.click();
+      await new Promise(r => setTimeout(r, 2000));
+      
+      // 出現したメニューから「1日分をまとめて」ボタンを探す
+      // 画面上では「コピー」がメインボタンなので、その下のリストから探す
+      const menuItems = Array.from(document.querySelectorAll('button, li, [role="menuitem"]'));
+      const downloadBtn = menuItems.find(i => i.innerText.includes("1日分") || i.innerText.includes("まとめて"));
+      
+      if (downloadBtn) {
+        downloadBtn.click();
+        return { success: true };
+      }
+      return { success: false, reason: "ダウンロード項目が見つかりません" };
+    }, mm, dd);
+
+    if (!clickResult.success) {
+      console.log(`${store} スキップ: ${clickResult.reason}`);
+      await page.screenshot({ path: `error_${store}_menu.png` });
+      continue;
+    }
+    await new Promise(r => setTimeout(r, 10000)); // DL待機
+  } catch (e) {
+    console.log(`${store} 操作エラー:`, e.message);
+    continue;
+  }
+
+ // ファイル処理
+  const files = fs.readdirSync(downloadPath);
+  const latestFile = files.filter(f => f.endsWith('.xlsx')).map(f => ({ name: f, time: fs.statSync(f).mtime.getTime() })).sort((a, b) => b.time - a.time)[0]?.name;
+  if (!latestFile) continue;
+
+  const filePath = `timee_${CLIENT_ID}_${yyyy}${mm}${dd}.xlsx`;
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  fs.renameSync(latestFile, filePath);
+  console.log("Excel保存完了:", filePath);
+
+  // Excel解析
+  const workbook = XLSX.readFile(filePath);
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+  const staff = rawData.slice(1).map(row => {
+      if (!row[1] || row[1] === "氏名") return null;
+      return { name: row[1], start: row[4], end: row[5] };
+   }).filter(Boolean);
+ const count = staff.length;
+ 
+  // ⓵ 就業中判断
+  const isWorkingNow = staff.some(s => {
+    if (!s.end) return false;
+    const [h, m] = s.end.split(':');
+    const endTime = new Date(jstNow);
+    endTime.setHours(parseInt(h), parseInt(m), 0);
+    return jstNow < endTime; 
+  });
+   if (MODE === "workcheck" && isWorkingNow) {
+        console.log(`${store} 勤務中`);
+        //     sendSlack = false;
+        continue;
+    }
+  // ⓶ 勤務時間・サマリー
+   let totalHours = "0.00";
+   let summaryStr = "";
+    if (staff.length > 0) {
+      let totalNum = 0;
+      const summaryMap = {};
+      staff.forEach(s => {
+        const h = calcIndividualWork(s);
+        totalNum += parseFloat(h);
+        summaryMap[h] = (summaryMap[h] || 0) + 1;
+      });
+      totalHours = totalNum.toFixed(2);
+      summaryStr = Object.entries(summaryMap).map(([h, c]) => `${h}時間x${c}人`).join(", ");
+    }
+    message += `\n${store}\n人数:${staff.length}\n`;
+    staff.forEach(s => { message += `・${s.name} (${s.start}〜${s.end})\n`; });
+    message += `合計勤務時間:${totalHours}時間\n内訳:${summaryStr}\n募集残:${vacancy}人\n`;
+    anyStoreSent = true;
+ 
+  // ⓷ シート上書き
+*/
+//  await writeSheet(date, time, store, count, staff.map(s => s.name.replace(/\s.*/g,'')).join(","), totalHours, vacancy, summaryStr);
+/*
+}
+
+// Slack通知（更新があった場合のみ）
+if (SLACK_WEBHOOK && anyStoreSent) {
+    await fetch(SLACK_WEBHOOK, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: message })
+    });
+    console.log("Slack通知完了");
+ }
+*/
 
   await browser.close();
-
 })();
+/* --- 関数群 --- */
+function calcIndividualWork(s) {
+  if (!s.start || !s.end) return "0.00";
+  const start = roundUp(new Date(`1970-01-01T${s.start}:00`));
+  const end = roundDown(new Date(`1970-01-01T${s.end}:00`));
+  let h = (end - start) / 3600000;
+  if (h > 3.5) h -= 1;
+  return h.toFixed(2);
+}
+
+
+function roundUp(date){
+ const d=new Date(date);
+ d.setMinutes(Math.ceil(d.getMinutes()/15)*15);
+ return d;
+}
+
+function roundDown(date){
+ const d=new Date(date);
+ d.setMinutes(Math.floor(d.getMinutes()/15)*15);
+ return d;
+}
+
+// 日付表記を統一して比較・更新する関数
+async function writeSheet(date, time, store, count, staff, total, vacancy, summary) {
+  const auth = new google.auth.GoogleAuth({ credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT), scopes: ["https://www.googleapis.com/auth/spreadsheets"] });
+  const sheets = google.sheets({ version: "v4", auth });
+  const spreadsheetId = process.env.SPREADSHEET_ID;
+
+  const normalizeDate = (d) => d?.toString().replace(/-/g, '/').split('/').map(p => parseInt(p)).join('/') || "";
+  const targetDate = normalizeDate(date);
+
+  const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: "Sheet1!A:C" });
+  const rows = res.data.values || [];
+  
+  // A列(日付)とC列(店舗)が一致する行を探す
+  const rowIndex = rows.findIndex(row => normalizeDate(row[0]) === targetDate && row[2]?.trim() === store.trim());
+
+  const values = [[date, time, store, count, staff, vacancy, total, summary]];
+
+  if (rowIndex !== -1) {
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `Sheet1!A${rowIndex + 1}`,
+      valueInputOption: "USER_ENTERED",
+      requestBody: { values }
+    });
+    console.log(`${store} のデータを上書きしました。`);
+  } else {
+    await sheets.spreadsheets.values.append({
+      spreadsheetId, range: "Sheet1!A1", valueInputOption: "USER_ENTERED", requestBody: { values }
+    });
+    console.log(`${store} の新規データを追加しました。`);
+  }
+}
