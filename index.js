@@ -86,7 +86,20 @@ for(const CLIENT_ID of CLIENT_IDS){
   console.log(`URL: ${offeringsUrl}`);
   await page.goto(offeringsUrl, { waitUntil: "networkidle2" });
   await new Promise(r => setTimeout(r, 5000));
-// --- ⓶ 日付を100件分拾い上げる（デバッグ用） ---
+
+
+  
+// --- ⓵ リスト表示への切り替え確認 & 強制待ち ---
+try {
+    console.log(`${store} リスト表示の最終確認中...`);
+    await page.waitForSelector('table, tr.css-1wwuwwa', { timeout: 15000 });
+    // 描画が安定するまで少し長めに待機（一宮のデータ量が多い可能性を考慮）
+    await new Promise(r => setTimeout(r, 7000)); 
+    console.log(`${store} 描画待ち完了。スキャンを開始します。`);
+} catch (e) {
+    console.log(`${store} テーブルが見つかりません。HTML構造が変わった可能性があります。`);
+}
+  // --- ⓶ 日付を100件分拾い上げる（デバッグ用） ---
 try {
     console.log(`--- ${store} 全日付抽出（最大100件）開始 ---`);
     
@@ -126,19 +139,7 @@ try {
 } catch (err) {
     console.log(`${store} 100件抽出中にエラー:`, err.message);
 }
-
   
-// --- ⓵ リスト表示への切り替え確認 & 強制待ち ---
-try {
-    console.log(`${store} リスト表示の最終確認中...`);
-    await page.waitForSelector('table, tr.css-1wwuwwa', { timeout: 15000 });
-    // 描画が安定するまで少し長めに待機（一宮のデータ量が多い可能性を考慮）
-    await new Promise(r => setTimeout(r, 7000)); 
-    console.log(`${store} 描画待ち完了。スキャンを開始します。`);
-} catch (e) {
-    console.log(`${store} テーブルが見つかりません。HTML構造が変わった可能性があります。`);
-}
-
   // --- ⓵ リスト表示に切り替え ---
   try {
     console.log(`${store} リスト表示への切り替えを試行...`);
