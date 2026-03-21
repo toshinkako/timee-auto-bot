@@ -86,7 +86,58 @@ for(const CLIENT_ID of CLIENT_IDS){
   console.log(`URL: ${offeringsUrl}`);
   await page.goto(offeringsUrl, { waitUntil: "networkidle2" });
   await new Promise(r => setTimeout(r, 5000));
+// --- ⓶ 日付を100件分拾い上げる（デバッグ用） ---
+try {
+    console.log(`--- ${store} 全日付抽出（最大100件）開始 ---`);
+    
+    const allDates = await page.evaluate(() => {
+        const results = [];
+        // タイミーのリスト行（tr）をすべて取得
+        const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
+        
+        rows.forEach((row, index) => {
+            // 日付が入っている可能性が高いspan、または行全体のテキスト
+            const dateSpan = row.querySelector('span.css-1r5gb7q');
+            const dateText = dateSpan ? dateSpan.innerText.trim() : "日付要素なし";
+            const rowSummary = row.innerText.replace(/\n/g, ' ').substring(0, 30); // 行の冒頭30文字
+            
+            results.push({
+                index: index + 1,
+                date: dateText,
+                summary: rowSummary
+            });
+        });
+        return results;
+    });
 
+    console.log(`[抽出結果] ${store}: 合計 ${allDates.length} 件の行を発見しました。`);
+    
+    if (allDates.length > 0) {
+        // 最初の100件を表示（実際は1ページ20〜50件程度のはず）
+        allDates.slice(0, 100).forEach(item => {
+            console.log(` 行${item.index}: [日付] ${item.date} | [内容] ${item.summary}...`);
+        });
+    } else {
+        console.log(` ⚠ 行が1件も見つかりませんでした。セレクタ 'tr.css-1wwuwwa' を再確認してください。`);
+    }
+
+    await page.screenshot({ path: `debug_full_scan_${store}.png`, fullPage: true });
+
+} catch (err) {
+    console.log(`${store} 100件抽出中にエラー:`, err.message);
+}
+
+  
+// --- ⓵ リスト表示への切り替え確認 & 強制待ち ---
+try {
+    console.log(`${store} リスト表示の最終確認中...`);
+    await page.waitForSelector('table, tr.css-1wwuwwa', { timeout: 15000 });
+    // 描画が安定するまで少し長めに待機（一宮のデータ量が多い可能性を考慮）
+    await new Promise(r => setTimeout(r, 7000)); 
+    console.log(`${store} 描画待ち完了。スキャンを開始します。`);
+} catch (e) {
+    console.log(`${store} テーブルが見つかりません。HTML構造が変わった可能性があります。`);
+}
 
   // --- ⓵ リスト表示に切り替え ---
   try {
