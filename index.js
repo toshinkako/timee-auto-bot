@@ -89,16 +89,41 @@ for(const CLIENT_ID of CLIENT_IDS){
 
 
   
+  
+  // --- ⓵ リスト表示に切り替え ---
+  try {
+    console.log(`${store} リスト表示への切り替えを試行...`);
+    await page.evaluate(async () => {
+      const buttons = Array.from(document.querySelectorAll('button'));
+      const listBtn = buttons.find(b => {
+        const text = b.innerText || "";
+        return text.includes('リスト表示');
+      });
+      if (listBtn) {
+        listBtn.click();
+        return "clicked";
+      }
+      return "not_found";
+    });
+    console.log(`${store} リスト反映待ち...`);
+    await page.waitForSelector('table', { timeout: 10000 });
+    await new Promise(r => setTimeout(r, 5000));
+    console.log(`${store} リスト表示の確認完了`);
+    await page.screenshot({ path: `debug_${store}_list_result.png`, fullPage: true });
+  } catch (e) {
+    console.log(`${store} リスト切り替え失敗:`, e.message);
+    await page.screenshot({ path: `error_${store}_toggle_fail.png` });
+  }
+
+////ここから確認テスト
 // --- ⓵ リスト表示への切り替え確認 & 強制待ち ---
-try {
-    console.log(`${store} リスト表示の最終確認中...`);
-    await page.waitForSelector('table, tr.css-1wwuwwa', { timeout: 15000 });
-    // 描画が安定するまで少し長めに待機（一宮のデータ量が多い可能性を考慮）
-    await new Promise(r => setTimeout(r, 7000)); 
-    console.log(`${store} 描画待ち完了。スキャンを開始します。`);
-} catch (e) {
-    console.log(`${store} テーブルが見つかりません。HTML構造が変わった可能性があります。`);
-}
+  console.log(`${store} リスト表示へ切り替え...`);
+await page.evaluate(() => {
+    const btn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('リスト表示'));
+    if (btn) btn.click();
+});
+await new Promise(r => setTimeout(r, 3000));
+  
   // --- ⓶ 日付を100件分拾い上げる（デバッグ用） ---
 try {
     console.log(`--- ${store} 全日付抽出（最大100件）開始 ---`);
@@ -139,33 +164,7 @@ try {
 } catch (err) {
     console.log(`${store} 100件抽出中にエラー:`, err.message);
 }
-  
-  // --- ⓵ リスト表示に切り替え ---
-  try {
-    console.log(`${store} リスト表示への切り替えを試行...`);
-    await page.evaluate(async () => {
-      const buttons = Array.from(document.querySelectorAll('button'));
-      const listBtn = buttons.find(b => {
-        const text = b.innerText || "";
-        return text.includes('リスト表示');
-      });
-      if (listBtn) {
-        listBtn.click();
-        return "clicked";
-      }
-      return "not_found";
-    });
-    console.log(`${store} リスト反映待ち...`);
-    await page.waitForSelector('table', { timeout: 10000 });
-    await new Promise(r => setTimeout(r, 5000));
-    console.log(`${store} リスト表示の確認完了`);
-    await page.screenshot({ path: `debug_${store}_list_result.png`, fullPage: true });
-  } catch (e) {
-    console.log(`${store} リスト切り替え失敗:`, e.message);
-    await page.screenshot({ path: `error_${store}_toggle_fail.png` });
-  }
 
-////ここから確認テスト
   // --- リスト表示確認後の検索・ログ出力セクション ---
   try {
     console.log(`--- ${store} 「${searchDate}」の抽出を開始 ---`);
