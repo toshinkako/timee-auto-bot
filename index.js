@@ -113,52 +113,66 @@ for(const CLIENT_ID of CLIENT_IDS){
   }
 
 ////ここから確認テスト
-// --- 修正版：一宮・大山 共通抽出ロジック ---
-// page.evaluate を使ってブラウザ内部で実行します
 const results = await page.evaluate((targetDate) => {
   const extracted = [];
-  const seenLinks = new Set(); // 重複排除用
-
-  // 1. 全ての求人リンク（aタグ）を取得
-  const jobLinks = document.querySelectorAll('td.show-all-cond a[href*="/offerings/"]');
+  const seenLinks = new Set();
+  const jobLinks = document.querySelectorAll('a[href*="/offerings/"]');
 
   jobLinks.forEach(link => {
     const jobUrl = link.href;
-    if (seenLinks.has(jobUrl)) return; // すでに処理した求人はスキップ
+    if (seenLinks.has(jobUrl)) return;
 
-    // 2. そのリンクが含まれる「求人行(tr)」を特定
     const row = link.closest('tr');
     if (!row) return;
 
-    // 3. その行、またはその「次の行（スマホ用詳細行）」から日時を探す
+    // 行内のテキスト（日時情報が含まれる部分）を取得
     const nextRow = row.nextElementSibling;
-    const combinedText = row.innerText + (nextRow ? nextRow.innerText : "");
+    const isMobileRow = nextRow && nextRow.classList.contains('hide-only-desktop');
+    const combinedText = (row.innerText + " " + (isMobileRow ? nextRow.innerText : "")).replace(/\s+/g, ' ');
 
-    // 4. 指定の日付が含まれている場合のみ抽出
-    if (combinedText.includes(targetDate)) {
-      seenLinks.add(jobUrl);
+    // 1. テキストから日時を抽出 (例: 2026年3月18日 23:30)
+    // ※UTCで記録されている場合、3/19 8:30の案件は「3月18日 23:30」と書かれている可能性があります
+    const dateMatch = combinedText.match(/(\d{4})年(\d{1,2})月(\d{1,2})日.*?(\d{1,2}):(\d{2})/);
+    
+    if (dateMatch) {
+      const [_, y, m, d, hh, mm] = dateMatch.map(Number);
       
-      // 必要な情報を整理
-      const statusElement = row.querySelector('div[class*="bg-offeringStatus"]');
-      const status = statusElement ? statusElement.innerText : "不明";
-      const title = link.innerText.trim();
-      const timeMatch = combinedText.match(/\d{1,2}:\d{2}\s~\s\d{1,2}:\d{2}/);
-      const time = timeMatch ? timeMatch[0] : "時間不明";
+      // 2. UTCとしてDateオブジェクトを作成し、9時間足して日本時間(JST)にする
+      const utcDate = new Date(Date.UTC(y, m - 1, d, hh, mm));
+      const jstDate = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000));
 
-      extracted.push({
-        status: status,
-        title: title,
-        time: time,
-        url: jobUrl
-      });
+      // 3. 日本時間での日付文字列を作成 (例: "3月19日")
+      const jstMonth = jstDate.getUTCMonth() + 1;
+      const jstDay = jstDate.getUTCDate();
+      const jstDateStr = `${jstMonth}月${jstDay}日`;
+      
+      // 日本時間での開始時刻 (例: "08:30")
+      const jstHours = String(jstDate.getUTCHours()).padStart(2, '0');
+      const jstMins = String(jstDate.getUTCMinutes()).padStart(2, '0');
+      const jstTimeStr = `${jstHours}:${jstMins}`;
+
+      // 4. 日本時間で「3月19日」に該当するか判定
+      if (jstDateStr === targetDate) {
+        seenLinks.add(jobUrl);
+        const statusEl = row.querySelector('div[class*="bg-offeringStatus"]');
+        
+        extracted.push({
+          status: statusEl ? statusEl.innerText.trim() : "不明",
+          title: link.innerText.trim(),
+          jst_time: jstTimeStr, // 日本時間に変換後の時間
+          original_text: combinedText.substring(0, 50) + "...", // デバッグ用
+          url: jobUrl
+        });
+      }
     }
   });
-  return extracted; // ブラウザからNode.js側へデータを返す
-}, "2026年3月19日"); // 第2引数で targetDate を渡す
+  return extracted;
+}, "3月19日");
 
-console.log(`[抽出完了] 2026年3月19日分: ${results.length}件発見`);
+console.log(`[JST変換後] 3月19日分の案件: ${results.length}件発見`);
 console.table(results);
-
+  
+////ここまで
 }
   await browser.close();
 })();
