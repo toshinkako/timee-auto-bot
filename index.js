@@ -185,6 +185,39 @@ const results = await page.evaluate((targetDate) => {
 
 console.log(`[JST変換後] 3月19日分の案件: ${results.length}件発見`);
 console.table(results);
+
+  // --- Node.js側での集計と表示 ---
+let amTotal = 0; // 午前(12時前)に稼働している総人数
+let pmTotal = 0; // 午後(12時以降)に稼働している総人数
+let shiftLines = [];
+
+results.forEach(job => {
+  // 時間をパース (例: "08:30")
+  const [startH, startM] = job.time_jst.split(':').map(Number);
+  
+  // 終了時間を取得 (combinedTextから抽出済みのものを想定)
+  // 12:00を跨ぐかどうかで午前・午後のカウントを判定
+  const timeRange = job.original_text.match(/(\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})/);
+  let endH = startH + 2; // デフォルト2時間（取得失敗時用）
+  if (timeRange) {
+    endH = parseInt(timeRange[2].split(':')[0]);
+  }
+
+  // 午前カウント：開始が12時より前
+  if (startH < 12) amTotal += job.applied;
+  // 午後カウント：終了が12時以降（12:00ちょうどの終了は含めないのが一般的）
+  if (endH >= 13) pmTotal += job.applied;
+
+  // 各行のフォーマット作成
+  // 例： 08:30～14:30  3 (0)
+  const timeDisplay = timeRange ? `${timeRange[1]}～${timeRange[2]}` : `${job.time_jst}～`;
+  shiftLines.push(`　${timeDisplay}　　${job.applied}　（${job.vacancy}）`);
+});
+
+// --- コンソール出力 ---
+console.log(`\n--- ${store} 報告 ---`);
+console.log(`3月19日　　午前　${amTotal}人　午後　${pmTotal}人`);
+shiftLines.forEach(line => console.log(line));
   
 ////ここまで
 }
