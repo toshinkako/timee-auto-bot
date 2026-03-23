@@ -130,6 +130,10 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
           if (jstDateStr === targetDate) {
             seenLinks.add(jobUrl);
             const timeRangeMatch = combinedText.match(/(\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})/);
+            let endH = 0;
+            if (timeRangeMatch) {
+              endH = parseInt(timeRangeMatch[2].split(':')[0]);
+            }
             const workerElem = row.querySelector('td.show-only-desktop:nth-child(5)') || row;
             const workerText = workerElem.innerText.match(/(\d+)\s*\/\s*(\d+)/);
             let applied = workerText ? parseInt(workerText[1]) : 0;
@@ -141,7 +145,8 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
               applied: applied,
               capacity: capacity,
               vacancy: capacity - applied,
-              startH: parseInt(jstHours)
+              startH: parseInt(jstHours),
+              endH: endH
               //status: statusEl ? statusEl.innerText.trim() : "不明",
               //title: link.innerText.trim(),
               //url: jobUrl
@@ -159,9 +164,10 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
     let shiftLines = [];
     
     results.forEach(job => {
+console.log(job)
       if (job.startH < 12) amTotal += job.applied;
-      if (job.startH >= 12 || job.startH < 12) pmTotal += job.applied;
-      //if (endH >= 13) pmTotal += job.applied;
+      //if (job.startH >= 12 || job.startH < 12) pmTotal += job.applied;
+      if (endH > 13) pmTotal += job.applied;
       shiftLines.push(`　${job.time_full}　　${job.applied}　（${job.vacancy}）`);
     });
     console.log(`\n--- ${store} 報告 ---`);
