@@ -171,7 +171,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
       if (job.endH > 13) pmTotal += job.applied;
       shiftLines.push(`　${job.time_full}　　${job.applied}　（${job.vacancy}）`);
     });
-    slackMessage += `\n--- ${store} 報告 ---\n${searchDate}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${lines.sort().join('\n')}\n`;
+    slackMessage += `\n--- ${store} 報告 ---\n${searchDate}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
     console.log(`${store} 完了`);
   }
 ////ここまでWEBから
