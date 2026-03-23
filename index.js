@@ -155,12 +155,26 @@ const results = await page.evaluate((targetDate) => {
       if (jstDateStr === targetDate) {
         seenLinks.add(jobUrl);
         const statusEl = row.querySelector('div[class*="bg-offeringStatus"]');
+
+
+        const workerElem = row.querySelector('td.show-only-desktop:nth-child(5)') || row;
+        const workerText = workerElem.innerText.match(/(\d+)\s*\/\s*(\d+)/);
+
+        let currentWorkers = 0;
+        let totalCapacity = 0;
+
+        if (workerText) {
+          currentWorkers = parseInt(workerText[1]); // 応募人数
+          totalCapacity = parseInt(workerText[2]);  // 募集定員
+        }
         
         extracted.push({
           status: statusEl ? statusEl.innerText.trim() : "不明",
           title: link.innerText.trim(),
-          jst_time: jstTimeStr, // 日本時間に変換後の時間
-          original_text: combinedText.substring(0, 50) + "...", // デバッグ用
+          time_jst: jstTimeStr,
+          applied: currentWorkers, // 応募済み
+          capacity: totalCapacity,  // 募集定員
+          vacancy: totalCapacity - currentWorkers, // 残り枠
           url: jobUrl
         });
       }
