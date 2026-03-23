@@ -156,7 +156,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
       });
       return extracted;
     }, searchDate);
-    console.log(`${searchDate}募集: ${results.length}件);
+    console.log(`${searchDate}募集: ${results.length}件`);
 
     // --- ⓷ 集計と報告表示 ---
     let amTotal = 0;
@@ -167,7 +167,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
 console.log(job)
       if (job.startH < 12) amTotal += job.applied;
       //if (job.startH >= 12 || job.startH < 12) pmTotal += job.applied;
-      if (endH > 13) pmTotal += job.applied;
+      if (job.endH > 13) pmTotal += job.applied;
       shiftLines.push(`　${job.time_full}　　${job.applied}　（${job.vacancy}）`);
     });
     console.log(`\n--- ${store} 報告 ---`);
