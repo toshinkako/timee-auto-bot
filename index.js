@@ -155,26 +155,25 @@ const results = await page.evaluate((targetDate) => {
         seenLinks.add(jobUrl);
         const statusEl = row.querySelector('div[class*="bg-offeringStatus"]');
 
-
         const workerElem = row.querySelector('td.show-only-desktop:nth-child(5)') || row;
         const workerText = workerElem.innerText.match(/(\d+)\s*\/\s*(\d+)/);
 
         let currentWorkers = 0;
         let totalCapacity = 0;
-
+        let vacanct = 0;
         if (workerText) {
           currentWorkers = parseInt(workerText[1]); // 応募人数
           totalCapacity = parseInt(workerText[2]);  // 募集定員
+          vacanct = parseInt(workerText[2]) - parseInt(workerText[1])
         }
-        
         extracted.push({
           status: statusEl ? statusEl.innerText.trim() : "不明",
           title: link.innerText.trim(),
           time_jst: jstTimeStr,
           applied: currentWorkers, // 応募済み
           capacity: totalCapacity,  // 募集定員
-          vacancy: totalCapacity - currentWorkers, // 残り枠
-          url: jobUrl
+          vacancy: vacanct // 残り枠
+         // url: jobUrl
         });
       }
     }
@@ -182,9 +181,57 @@ const results = await page.evaluate((targetDate) => {
   return extracted;
 }, "3月19日");
 
-console.log(`[JST変換後] 3月19日分の案件: ${results.length}件発見 ${currentWorkers}/${totalCapacity} 残り${totalCapacity - currentWorkers}`);
+console.log(`[JST変換後] 3月19日分の案件: ${results.length}件発見 ${currentWorkers}/${totalCapacity} 残り${vacanct}`);
 console.table(results);
-  
+
+// --- 1. 午前・午後の集計ロジック ---
+let amCount = 0; // 午前中に1分でも働く人
+let pmCount = 0; // 午後に1分でも働く人
+let vacancyInfo = []; // 残り枠の情報
+
+results.forEach(job => {
+    // 時間をパース (例: "08:30" や "13:00")
+    const [startH, startM] = job.time_jst.split(':').map(Number);
+    
+    // 終了時間を取得 (original_textなどから抽出)
+    // ここでは simplified に「開始から何時間か」ではなく、
+    // combinedTextから取得した終了時間を使用する想定
+    const timeRange = job.original_text.match(/(\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})/);
+    if (timeRange) {
+        const [_, startStr, endStr] = timeRange;
+        const [endH, endM] = endStr.split(':').map(Number);
+
+        // 判定：午前(12:00以前)に勤務があるか
+        // 開始が12:00前なら午前勤務あり
+        if (startH < 12) amCount += job.applied;
+
+        // 判定：午後(12:00以降)に勤務があるか
+        // 終了が12:00以降なら午後勤務あり
+        if (endH >= 12 && !(endH === 12 && endM === 0)) pmCount += job.applied;
+    }
+
+    // 残り枠がある場合のみリストに追加
+    if (job.vacancy > 0) {
+        vacancyInfo.push(`残り ${job.time_jst}～ ${job.vacancy}人`);
+    }
+});
+
+// --- 2. コンソール出力用のフォーマット ---
+console.log(`\n--- ${store} 集計報告 ---`);
+console.log(`3月19日　午前 ${amCount}人　午後 ${pmCount}人`);
+
+if (vacancyInfo.length > 0) {
+    vacancyInfo.forEach(info => console.log(info));
+} else {
+    console.log("残り枠なし");
+}
+
+  // 求人一覧の表示
+  results.forEach(job => {
+    // タイトルを少し短くして表示
+    const shortTitle = job.title.length > 20 ? job.title.substring(0, 20) + "..." : job.title;
+    console.log(`　${shortTitle}（${job.time_jst}～）`);
+});
 ////ここまで
 }
   await browser.close();
