@@ -47,9 +47,6 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
     page.click('button[type="submit"]')
   ]);
   console.log("ログイン成功");
-
-  const searchDate = "3月19日";
-  const dateParam = "2026-03-19";
  
   /* 現在時刻 */
   const now = new Date();
@@ -63,7 +60,12 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
   const dd = parts.find(p => p.type === 'day').value; 
   const date = `${yyyy}/${mm}/${dd}`;
   const time = jstNow.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
+  //const searchDate = "3月19日";
+  //const dateParam = "2026-03-19";
+  const searchDate = `${mm}月${dd}日`;
+  const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
 
+  
   let slackMessage = '【Timee勤務確認】';
   let anyStoreSent = false;
   let anyVacancies = false;
@@ -77,8 +79,6 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
       if(f.endsWith('.xlsx')) fs.unlinkSync(f);
     });
 
-    //const targetDateStr = `${yyyy}年${mm}月${dd}日`;
-    //const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
     const offeringsUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings?date_from=${dateParam}&date_to=${dateParam}`;
     console.log(`\n--- ${store} 処理開始 ---`);
     await page.goto(offeringsUrl, { waitUntil: "networkidle2" });
