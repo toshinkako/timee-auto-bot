@@ -60,8 +60,8 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
   const dd = parts.find(p => p.type === 'day').value; 
   const date = `${yyyy}/${mm}/${dd}`;
   const time = jstNow.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
-  //const searchDate = "3月19日";
-  //const dateParam = "2026-03-19";
+//const searchDate = "3月19日";
+//const dateParam = "2026-03-19";
   const searchDate = `${mm}月${dd}日`;
   const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
 
@@ -98,8 +98,9 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
       console.log(`${store} リスト切り替え失敗:`, e.message);
       await page.screenshot({ path: `error_${store}_toggle_fail.png` });
     }
-    
+
     // --- ⓶ データの抽出 (UTCからJSTへの変換含む) ---
+  if (MODE=='morning'){
     const results = await page.evaluate((targetDate) => {
       const extracted = [];
       const seenLinks = new Set();
@@ -172,8 +173,10 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
     slackMessage += `\n--- ${store} 報告 ---\n${searchDate}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
     console.log(`${store} 完了  ${slackMessage}`);
     if(amTotal>0||pmTotal>0) anyStoreSent = true;
-  }
-////ここまでWEBから
+   }
+  }    //ループ終了
+
+  ////ここまでWEBから
   // Slack通知（更新があった場合のみ）
   if (SLACK_WEBHOOK && anyStoreSent) {
     await fetch(SLACK_WEBHOOK, {
@@ -183,8 +186,8 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
     });
     console.log("Slack通知完了");
  }
+
   const statusData = { hasVacancies: anyVacancies };
   fs.writeFileSync('last_status.json', JSON.stringify(statusData));
-  
   await browser.close();
 })();
