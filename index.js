@@ -151,7 +151,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
       });
       return extracted;
     }, searchDate);
-    console.log(`${searchDate}募集: ${results.length}件 ${applied} / ${capacity}`);
+    console.log(`${searchDate}募集: ${results.length}件);
 
     // --- ⓷ 集計と報告表示 ---
     let amTotal = 0;
