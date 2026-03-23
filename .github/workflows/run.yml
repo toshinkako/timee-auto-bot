@@ -16,8 +16,29 @@ on:
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-
     steps:
+      - uses: actions/checkout@v4
+      - name: Restore last status
+        uses: actions/cache@v4
+        with:
+          path: last_status.json
+          key: status-${{ github.run_id }}
+          restore-keys: status-
+
+      - name: Check Vacancy Status
+        id: check_skip
+        run: |
+          # 現在時刻の「時」を取得 (UTC 23時 = JST 08時)
+          HOUR=$(date +%H)
+          if [ "$HOUR" = "23" ] && [ -f last_status.json ]; then
+            HAS_VACANCY=$(jq -r '.hasVacancies' last_status.json)
+            echo "has_vacancy=$HAS_VACANCY" >> $GITHUB_OUTPUT
+          else
+            # 6:00実行時やファイルがない場合は必ず実行
+            echo "has_vacancy=true" >> $GITHUB_OUTPUT
+          fi
+          
+      
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -39,6 +60,7 @@ jobs:
         run: npm install
 
       - name: Run Timee Bot
+        if: steps.check_skip.outputs.has_vacancy == 'true'
         run: node index.js
         env:
           TAIMEE_EMAIL: ${{ secrets.TAIMEE_EMAIL }}
@@ -46,6 +68,13 @@ jobs:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
           GOOGLE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SERVICE_ACCOUNT }}
+
+      - name: Save status for next run
+        if: always()
+        uses: actions/cache@v4
+        with:
+          path: last_status.json
+          key: status-${{ github.run_id }}-${{ github.run_number }}
 
       - name: Upload screenshots on failure
         uses: actions/upload-artifact@v4
