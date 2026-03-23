@@ -65,8 +65,8 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
   const time = jstNow.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
 
   let slackMessage = '【Timee勤務確認】';
-  let anyStoreSent = false; // 少なくとも1店舗が更新されたか
-  let sendSlack = true;
+  let anyStoreSent = false;
+  let anyVacancies = false;
 
  /* 店舗ループ */
   for(const CLIENT_ID of CLIENT_IDS){
@@ -153,9 +153,6 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
               vacancy: capacity - applied,
               startH: parseInt(jstHours),
               endH: jstEndH
-              //status: statusEl ? statusEl.innerText.trim() : "不明",
-              //title: link.innerText.trim(),
-              //url: jobUrl
             });
           }
         }
@@ -170,6 +167,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
       if (job.startH < 12) amTotal += job.applied;
       if (job.endH > 13) pmTotal += job.applied;
       shiftLines.push(`　${job.time_full}　　${job.applied}　（${job.vacancy}）`);
+      if (job.vacancy > 0) anyVacancies = true;
     });
     slackMessage += `\n--- ${store} 報告 ---\n${searchDate}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
     console.log(`${store} 完了  ${slackMessage}`);
@@ -185,7 +183,8 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
     });
     console.log("Slack通知完了");
  }
-
+  const statusData = { hasVacancies: anyVacancies };
+  fs.writeFileSync('last_status.json', JSON.stringify(statusData));
   
   await browser.close();
 })();
