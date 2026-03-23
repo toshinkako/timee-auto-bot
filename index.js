@@ -172,10 +172,11 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
       shiftLines.push(`　${job.time_full}　　${job.applied}　（${job.vacancy}）`);
     });
     slackMessage += `\n--- ${store} 報告 ---\n${searchDate}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
-    console.log(`${store} 完了`);
+    console.log(`${store} 完了  ${slackMessage}`);
+    if(amTotal>0||pmTotal>0) anyStoreSent = true;
   }
 ////ここまでWEBから
-    // Slack通知（更新があった場合のみ）
+  // Slack通知（更新があった場合のみ）
   if (SLACK_WEBHOOK && anyStoreSent) {
     await fetch(SLACK_WEBHOOK, {
       method: "POST",
