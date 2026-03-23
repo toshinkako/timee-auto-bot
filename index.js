@@ -102,7 +102,6 @@ for(const CLIENT_ID of CLIENT_IDS){
       }
       return "not_found";
     });
-    console.log(`${store} リスト反映待ち...`);
     await page.waitForSelector('table', { timeout: 10000 });
     await new Promise(r => setTimeout(r, 5000));
     console.log(`${store} リスト表示の確認完了`);
@@ -183,7 +182,7 @@ const results = await page.evaluate((targetDate) => {
   return extracted;
 }, "3月19日");
 
-console.log(`[JST変換後] 3月19日分の案件: ${results.length}件発見`);
+console.log(`[JST変換後] 3月19日分の案件: ${results.length}件発見 ${currentWorkers}/${totalCapacity} 残り${totalCapacity - currentWorkers}`);
 console.table(results);
   
 ////ここまで
