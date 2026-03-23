@@ -130,9 +130,15 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
           if (jstDateStr === targetDate) {
             seenLinks.add(jobUrl);
             const timeRangeMatch = combinedText.match(/(\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})/);
-            let endH = 0;
+            let jstEndH = 0;
+            let jstTimeFull = jstTimeStr + "～";
             if (timeRangeMatch) {
-              endH = parseInt(timeRangeMatch[2].split(':')[0]);
+              const [eH, eM] = timeRangeMatch[2].split(':').map(Number);
+              const utcEndDate = new Date(Date.UTC(y, m - 1, d, eH, eM));
+              const jstEndDate = new Date(utcEndDate.getTime() + (9 * 60 * 60 * 1000));
+              jstEndH = jstEndDate.getUTCHours();
+              const jstEndM = String(jstEndDate.getUTCMinutes()).padStart(2, '0');
+              jstTimeFull = `${jstTimeStr}～${String(jstEndH).padStart(2, '0')}:${jstEndM}`;
             }
             const workerElem = row.querySelector('td.show-only-desktop:nth-child(5)') || row;
             const workerText = workerElem.innerText.match(/(\d+)\s*\/\s*(\d+)/);
@@ -141,12 +147,12 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
             const statusEl = row.querySelector('div[class*="bg-offeringStatus"]');
             extracted.push({
               time_jst: jstTimeStr,
-              time_full: timeRangeMatch ? timeRangeMatch[0] : jstTimeStr, // 表示用
+              time_full: jstTimeFull,
               applied: applied,
               capacity: capacity,
               vacancy: capacity - applied,
               startH: parseInt(jstHours),
-              endH: endH
+              endH: jstEndH
               //status: statusEl ? statusEl.innerText.trim() : "不明",
               //title: link.innerText.trim(),
               //url: jobUrl
