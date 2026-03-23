@@ -113,145 +113,47 @@ for(const CLIENT_ID of CLIENT_IDS){
   }
 
 ////ここから確認テスト
-// --- ⓵ リスト表示への切り替え確認 & 強制待ち ---
-  console.log(`${store} リスト表示へ切り替え...`);
-await page.evaluate(() => {
-    const btn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('リスト表示'));
-    if (btn) btn.click();
-});
-await new Promise(r => setTimeout(r, 3000));
-  
-  // --- ⓶ 日付を100件分拾い上げる（デバッグ用） ---
-try {
-    console.log(`--- ${store} 全日付抽出（最大100件）開始 ---`);
-    
-    const allDates = await page.evaluate(() => {
-        const results = [];
-        // タイミーのリスト行（tr）をすべて取得
-        const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
+// --- 修正版：一宮・大山 共通抽出ロジック ---
+const targetDate = "2026年3月19日";
+const results = [];
+const seenLinks = new Set(); // 重複排除用
+
+// 1. 全ての求人リンク（aタグ）を取得
+const jobLinks = document.querySelectorAll('td.show-all-cond a[href*="/offerings/"]');
+
+jobLinks.forEach(link => {
+    const jobUrl = link.href;
+    if (seenLinks.has(jobUrl)) return; // すでに処理した求人はスキップ
+
+    // 2. そのリンクが含まれる「求人行(tr)」を特定
+    const row = link.closest('tr');
+    if (!row) return;
+
+    // 3. その行、またはその「次の行（スマホ用詳細行）」から日時を探す
+    const nextRow = row.nextElementSibling;
+    const combinedText = row.innerText + (nextRow ? nextRow.innerText : "");
+
+    // 4. 日本時間の「3月19日」が含まれている場合のみ抽出
+    if (combinedText.includes(targetDate)) {
+        seenLinks.add(jobUrl);
         
-        rows.forEach((row, index) => {
-            // 日付が入っている可能性が高いspan、または行全体のテキスト
-            const dateSpan = row.querySelector('span.css-1r5gb7q');
-            const dateText = dateSpan ? dateSpan.innerText.trim() : "日付要素なし";
-            const rowSummary = row.innerText.replace(/\n/g, ' ').substring(0, 30); // 行の冒頭30文字
-            
-            results.push({
-                index: index + 1,
-                date: dateText,
-                summary: rowSummary
-            });
-        });
-        return results;
-    });
+        // 必要な情報を整理
+        const status = row.querySelector('div[class*="bg-offeringStatus"]')?.innerText || "不明";
+        const title = link.innerText.trim();
+        const timeMatch = combinedText.match(/\d{1,2}:\d{2}\s~\s\d{1,2}:\d{2}/);
+        const time = timeMatch ? timeMatch[0] : "時間不明";
 
-    console.log(`[抽出結果] ${store}: 合計 ${allDates.length} 件の行を発見しました。`);
-    
-    if (allDates.length > 0) {
-        // 最初の100件を表示（実際は1ページ20〜50件程度のはず）
-        allDates.slice(0, 30).forEach(item => {
-            console.log(` 行${item.index}: [日付] ${item.date} | [内容] ${item.summary}...`);
+        results.push({
+            status: status,
+            title: title,
+            time: time,
+            url: jobUrl
         });
-    } else {
-        console.log(` ⚠ 行が1件も見つかりませんでした。セレクタ 'tr.css-1wwuwwa' を再確認してください。`);
     }
-
-    await page.screenshot({ path: `debug_full_scan_${store}.png`, fullPage: true });
-
-} catch (err) {
-    console.log(`${store} 100件抽出中にエラー:`, err.message);
-}
-
-  // --- リスト表示確認後の検索・ログ出力セクション ---
-  try {
-    console.log(`--- ${store} 「${searchDate}」の抽出を開始 ---`);
-    const searchResult = await page.evaluate((targetText) => {
-      const elements = Array.from(document.querySelectorAll('div, span, td'));
-      const matches = elements.filter(el =>
-        el.innerText &&
-        el.innerText.includes(targetText) &&
-        el.children.length === 0
-      );
-
-      return {
-        count: matches.length,
-        contents: matches.slice(0, 10).map(el => el.innerText.trim())
-      };
-    }, searchDate);
-    console.log(`[結果] ${store}: 「${searchDate}」は ${searchResult.count} 件見つかりました。`);
-    
-    if (searchResult.count > 0) {
-      searchResult.contents.forEach((text, index) => {
-        console.log(`  発見(${index + 1}): ${text.replace(/\n/g, ' ')}`);
-      });
-    } else {
-      console.log(`  ⚠ ${searchDate} を含む要素は見つかりませんでした。`);
-      // デバッグ用に画面全体のテキストを少し出す
-      const bodyText = await page.evaluate(() => document.body.innerText.substring(0, 300));
-      console.log(`  画面冒頭のテキスト: ${bodyText.replace(/\n/g, ' ')}`);
-    }
-
-    await page.screenshot({ path: `final_search_${store}.png`, fullPage: true });
-    console.log(`--- ${store} 抽出完了 ---`);
-
-  } catch (err) {
-    console.log(`${store} 検索処理中にエラー:`, err.message);
-  }
-  
-
-  // --- ⓷ 全行抽出（タグ構造解析モード） ---
-console.log(`--- ${store} 全行構造解析（最大100件）開始 ---`);
-const allRowsData = await page.evaluate(() => {
-    // すべての tr タグを取得
-    const rows = Array.from(document.querySelectorAll('tr'));
-    
-    return rows.map((row, index) => {
-        // 行自体の情報
-        const rowTagName = row.tagName.toLowerCase();
-        const rowClass = row.className;
-        const rowText = row.innerText.replace(/\n/g, ' ').trim().substring(0, 50);
-
-        // 行の直下にある td や th の構造を調べる
-        const children = Array.from(row.children).map(child => {
-            return {
-                tag: child.tagName.toLowerCase(),
-                class: child.className,
-                text: child.innerText.trim().substring(0, 20)
-            };
-        });
-
-        // 「3月19日」が含まれているかチェック
-        const hasTarget = row.innerText.includes("3月19日");
-
-        return {
-            index: index + 1,
-            rowInfo: `<${rowTagName} class="${rowClass}">`,
-            text: rowText,
-            structure: children,
-            hasTarget: hasTarget
-        };
-    }).filter(r => r.text.length > 0);
 });
 
-console.log(`[抽出結果] ${store}: 合計 ${allRowsData.length} 件の行を発見`);
-
-allRowsData.slice(0, 100).forEach(r => {
-    const targetMark = r.hasTarget ? "★[FOUND 3/19]" : "  [NO TARGET]";
-    console.log(`${targetMark} 行${r.index}: ${r.rowInfo}`);
-    console.log(`      内容: ${r.text}...`);
-    
-    // 子要素の構造を表示
-    const structPath = r.structure.map(s => `<${s.tag} class="${s.class.split(' ').join('.')}">`).join(' -> ');
-    console.log(`      構造: ${structPath}`);
-});
-
-// --- ⓸ 3月19日の有無を確認 ---
-if (allRowsData.some(r => r.hasTarget)) {
-    console.log(`[SUCCESS] ${store}: 3月19日の行をタグ構造レベルで確認！`);
-} else {
-    console.log(`[WARNING] ${store}: 3月19日が見つかりません。一宮のHTML構造を確認してください。`);
-}
-
+console.log(`[抽出完了] ${targetDate}分: ${results.length}件発見`);
+console.table(results);
 
 }
   await browser.close();
