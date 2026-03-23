@@ -64,7 +64,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
   const date = `${yyyy}/${mm}/${dd}`;
   const time = jstNow.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
 
-  let message = `【Timee勤務確認】\n  ${date} ${time}\n`;
+  let slackMessage = '【Timee勤務確認】';
   let anyStoreSent = false; // 少なくとも1店舗が更新されたか
   let sendSlack = true;
 
@@ -170,9 +170,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
     let shiftLines = [];
     
     results.forEach(job => {
-console.log(job)
       if (job.startH < 12) amTotal += job.applied;
-      //if (job.startH >= 12 || job.startH < 12) pmTotal += job.applied;
       if (job.endH > 13) pmTotal += job.applied;
       shiftLines.push(`　${job.time_full}　　${job.applied}　（${job.vacancy}）`);
     });
@@ -180,8 +178,27 @@ console.log(job)
     console.log(`${searchDate}　　午前　${amTotal}人　午後　${pmTotal}人`);
     shiftLines.sort().forEach(line => console.log(line));
   }
-
+////ここまでWEBから
+  // Slack用のメッセージを蓄積
+  slackMessage += `\n--- ${store} 報告 ---\n`;
+  slackMessage += `${searchDate}　　午前 ${amTotal}人　午後 ${pmTotal}人\n`;
+  shiftLines.sort().forEach(line => {
+    slackMessage += `${line}\n`;
+  });
+}
+// --- 最終的にSlackへ送信 ---
+if (SLACK_WEBHOOK) {
+  const axios = require('axios'); // もしaxiosがなければ https 等でも代用可
+  try {
+    await axios.post(SLACK_WEBHOOK, { text: slackMessage });
+    console.log("\nSlack送信完了");
+  } catch (error) {
+    console.error("\nSlack送信失敗:", error.message);
+  }
+} else {
+  console.log("\nSLACK_WEBHOOK が設定されていないため、送信をスキップします。");
+  console.log(slackMessage); // デバッグ用に内容だけ表示
+}
   
-////ここまで
   await browser.close();
 })();
