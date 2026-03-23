@@ -86,10 +86,7 @@ for(const CLIENT_ID of CLIENT_IDS){
   console.log(`URL: ${offeringsUrl}`);
   await page.goto(offeringsUrl, { waitUntil: "networkidle2" });
   await new Promise(r => setTimeout(r, 5000));
-
-
-  
-  
+ 
   // --- ⓵ リスト表示に切り替え ---
   try {
     console.log(`${store} リスト表示への切り替えを試行...`);
@@ -152,7 +149,7 @@ try {
     
     if (allDates.length > 0) {
         // 最初の100件を表示（実際は1ページ20〜50件程度のはず）
-        allDates.slice(0, 100).forEach(item => {
+        allDates.slice(0, 30).forEach(item => {
             console.log(` 行${item.index}: [日付] ${item.date} | [内容] ${item.summary}...`);
         });
     } else {
@@ -202,6 +199,58 @@ try {
   }
   
 
+  // --- ⓷ 全行抽出（タグ構造解析モード） ---
+console.log(`--- ${store} 全行構造解析（最大100件）開始 ---`);
+const allRowsData = await page.evaluate(() => {
+    // すべての tr タグを取得
+    const rows = Array.from(document.querySelectorAll('tr'));
+    
+    return rows.map((row, index) => {
+        // 行自体の情報
+        const rowTagName = row.tagName.toLowerCase();
+        const rowClass = row.className;
+        const rowText = row.innerText.replace(/\n/g, ' ').trim().substring(0, 50);
+
+        // 行の直下にある td や th の構造を調べる
+        const children = Array.from(row.children).map(child => {
+            return {
+                tag: child.tagName.toLowerCase(),
+                class: child.className,
+                text: child.innerText.trim().substring(0, 20)
+            };
+        });
+
+        // 「3月19日」が含まれているかチェック
+        const hasTarget = row.innerText.includes("3月19日");
+
+        return {
+            index: index + 1,
+            rowInfo: `<${rowTagName} class="${rowClass}">`,
+            text: rowText,
+            structure: children,
+            hasTarget: hasTarget
+        };
+    }).filter(r => r.text.length > 0);
+});
+
+console.log(`[抽出結果] ${store}: 合計 ${allRowsData.length} 件の行を発見`);
+
+allRowsData.slice(0, 100).forEach(r => {
+    const targetMark = r.hasTarget ? "★[FOUND 3/19]" : "  [NO TARGET]";
+    console.log(`${targetMark} 行${r.index}: ${r.rowInfo}`);
+    console.log(`      内容: ${r.text}...`);
+    
+    // 子要素の構造を表示
+    const structPath = r.structure.map(s => `<${s.tag} class="${s.class.split(' ').join('.')}">`).join(' -> ');
+    console.log(`      構造: ${structPath}`);
+});
+
+// --- ⓸ 3月19日の有無を確認 ---
+if (allRowsData.some(r => r.hasTarget)) {
+    console.log(`[SUCCESS] ${store}: 3月19日の行をタグ構造レベルで確認！`);
+} else {
+    console.log(`[WARNING] ${store}: 3月19日が見つかりません。一宮のHTML構造を確認してください。`);
+}
 
 
 }
