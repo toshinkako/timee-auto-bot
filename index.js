@@ -102,6 +102,7 @@ for(const CLIENT_ID of CLIENT_IDS){
       }
       return "not_found";
     });
+    console.log(`${store} リスト反映待ち...`);
     await page.waitForSelector('table', { timeout: 10000 });
     await new Promise(r => setTimeout(r, 5000));
     console.log(`${store} リスト表示の確認完了`);
@@ -155,24 +156,26 @@ const results = await page.evaluate((targetDate) => {
         seenLinks.add(jobUrl);
         const statusEl = row.querySelector('div[class*="bg-offeringStatus"]');
 
+
         const workerElem = row.querySelector('td.show-only-desktop:nth-child(5)') || row;
         const workerText = workerElem.innerText.match(/(\d+)\s*\/\s*(\d+)/);
 
         let currentWorkers = 0;
         let totalCapacity = 0;
-        let vacanct = 0;
+
         if (workerText) {
           currentWorkers = parseInt(workerText[1]); // 応募人数
           totalCapacity = parseInt(workerText[2]);  // 募集定員
         }
+        
         extracted.push({
           status: statusEl ? statusEl.innerText.trim() : "不明",
           title: link.innerText.trim(),
           time_jst: jstTimeStr,
           applied: currentWorkers, // 応募済み
           capacity: totalCapacity,  // 募集定員
-          vacancy: arseInt(workerText[2])-arseInt(workerText[1]) // 残り枠
-         // url: jobUrl
+          vacancy: totalCapacity - currentWorkers, // 残り枠
+          url: jobUrl
         });
       }
     }
@@ -180,13 +183,10 @@ const results = await page.evaluate((targetDate) => {
   return extracted;
 }, "3月19日");
 
-console.log(`[JST変換後] 3月19日分の案件: ${results.length}件発見 ${currentWorkers}/${totalCapacity}`);
+console.log(`[JST変換後] 3月19日分の案件: ${results.length}件発見`);
 console.table(results);
-
-
   
 ////ここまで
 }
   await browser.close();
 })();
-
