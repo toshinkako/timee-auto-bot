@@ -114,14 +114,15 @@ for(const CLIENT_ID of CLIENT_IDS){
 
 ////ここから確認テスト
 // --- 修正版：一宮・大山 共通抽出ロジック ---
-const targetDate = "2026年3月19日";
-const results = [];
-const seenLinks = new Set(); // 重複排除用
+// page.evaluate を使ってブラウザ内部で実行します
+const results = await page.evaluate((targetDate) => {
+  const extracted = [];
+  const seenLinks = new Set(); // 重複排除用
 
-// 1. 全ての求人リンク（aタグ）を取得
-const jobLinks = document.querySelectorAll('td.show-all-cond a[href*="/offerings/"]');
+  // 1. 全ての求人リンク（aタグ）を取得
+  const jobLinks = document.querySelectorAll('td.show-all-cond a[href*="/offerings/"]');
 
-jobLinks.forEach(link => {
+  jobLinks.forEach(link => {
     const jobUrl = link.href;
     if (seenLinks.has(jobUrl)) return; // すでに処理した求人はスキップ
 
@@ -133,26 +134,29 @@ jobLinks.forEach(link => {
     const nextRow = row.nextElementSibling;
     const combinedText = row.innerText + (nextRow ? nextRow.innerText : "");
 
-    // 4. 日本時間の「3月19日」が含まれている場合のみ抽出
+    // 4. 指定の日付が含まれている場合のみ抽出
     if (combinedText.includes(targetDate)) {
-        seenLinks.add(jobUrl);
-        
-        // 必要な情報を整理
-        const status = row.querySelector('div[class*="bg-offeringStatus"]')?.innerText || "不明";
-        const title = link.innerText.trim();
-        const timeMatch = combinedText.match(/\d{1,2}:\d{2}\s~\s\d{1,2}:\d{2}/);
-        const time = timeMatch ? timeMatch[0] : "時間不明";
+      seenLinks.add(jobUrl);
+      
+      // 必要な情報を整理
+      const statusElement = row.querySelector('div[class*="bg-offeringStatus"]');
+      const status = statusElement ? statusElement.innerText : "不明";
+      const title = link.innerText.trim();
+      const timeMatch = combinedText.match(/\d{1,2}:\d{2}\s~\s\d{1,2}:\d{2}/);
+      const time = timeMatch ? timeMatch[0] : "時間不明";
 
-        results.push({
-            status: status,
-            title: title,
-            time: time,
-            url: jobUrl
-        });
+      extracted.push({
+        status: status,
+        title: title,
+        time: time,
+        url: jobUrl
+      });
     }
-});
+  });
+  return extracted; // ブラウザからNode.js側へデータを返す
+}, "2026年3月19日"); // 第2引数で targetDate を渡す
 
-console.log(`[抽出完了] ${targetDate}分: ${results.length}件発見`);
+console.log(`[抽出完了] 2026年3月19日分: ${results.length}件発見`);
 console.table(results);
 
 }
