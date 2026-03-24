@@ -263,7 +263,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
   */
   }    //ループ終了
 
-anyStoreSent = false
+//anyStoreSent = false
   ////ここまでWEBから
   // Slack通知（更新があった場合のみ）
   if (SLACK_WEBHOOK && anyStoreSent) {
