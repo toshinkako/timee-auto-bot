@@ -189,7 +189,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
         });
 
         // 「マッチング済み」というテキストを含む要素の親を辿ってリストを探す
-        // タイミーの現在の構造に合わせたセレクタ（仮：変更の可能性あり）
+      /*/ タイミーの現在の構造に合わせたセレクタ（仮：変更の可能性あり）
         const name2s = [];
         const workerElements = document.querySelectorAll('div[class*="WorkerName"], .worker-name, [class*="matching"] span');
         workerElements.forEach(el => {
@@ -198,6 +198,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
             name2s.push(name2);
           }
         });
+      */
 
         console.log(names,name2s)
         return names;
@@ -208,10 +209,32 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
       // 元のリスト画面に戻る
       await page.goBack({ waitUntil: "networkidle2" });
     }
+    // --- ⓷ 集計と報告表示 (修正版) ---
+    let amTotal = 0, pmTotal = 0, shiftLines = [];
+    for (const job of results) {
+      // ⓵ ワーカー名の後ろに状態を追加（ここでは一律「済み」とするか、要素から取得可能）
+      const workerDisplayNames = (job.workerNames || []).map(name => `${name.split(/[\s　]+/)[0]}（済み）`);
+      const workersStr = workerDisplayNames.join('、');
+      // ⓷ 残り枠の計算 (applied / capacity から算出)
+      const vacancy = job.capacity - job.applied;
+      if (vacancy > 0) anyVacancies = true;
+      // 午前・午後の集計 ⓶ 報告の形式を作成
+      if (job.startH < 12) amTotal += job.applied;
+      if (job.endH > 13) pmTotal += job.applied;
+      shiftLines.push(`　${job.time_full}　　${job.applied}　（${vacancy}）　　${workersStr}`);
+    }
+    // 店舗ごとのメッセージ組み立て（既存の slackMessage に追加）
+    const storeReport = `\n--- ${store} 報告 ---\n${searchDate}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
+    slackMessage += storeReport;
+
+    console.log(`${store} 完了`);
+    if (amTotal > 0 || pmTotal > 0) anyStoreSent = true;
+    
 
     
 //名前取得テスト中
     // --- ⓷ 集計と報告表示 ---
+  /*
     let amTotal = 0, pmTotal = 0, shiftLines = [];
     results.forEach(job => {
       if (job.startH < 12) amTotal += job.applied;
@@ -222,6 +245,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
     slackMessage += `\n--- ${store} 報告 ---\n${searchDate}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
     console.log(`${store} 完了  ${slackMessage}`);
     if(amTotal>0||pmTotal>0) anyStoreSent = true;
+  */
   }    //ループ終了
 
   ////ここまでWEBから
