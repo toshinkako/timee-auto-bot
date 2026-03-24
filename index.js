@@ -244,7 +244,8 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
   try {
     console.log(`${store} のメニュー操作を開始...`);
     const clickResult = await page.evaluate(async (mm, dd) => {
-      const dateQuery = `${mm}月${dd}日`;
+      ///const dateQuery = `${mm}月${dd}日`;
+      const dateQuery = "3月19日";
       const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
       
       // 対象の日付を含む行を探す
@@ -292,6 +293,49 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     fs.renameSync(latestFile, filePath);
     console.log("Excel保存完了:", filePath);
+     // Excel解析
+  const workbook = XLSX.readFile(filePath);
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+  const staff = rawData.slice(1).map(row => {
+      if (!row[1] || row[1] === "氏名") return null;
+      return { name: row[1], start: row[4], end: row[5] };
+   }).filter(Boolean);
+ 
+  // ⓵ 就業中判断
+  const isWorkingNow = staff.some(s => {
+    if (!s.end) return false;
+    const [h, m] = s.end.split(':');
+    const endTime = new Date(jstNow);
+    endTime.setHours(parseInt(h), parseInt(m), 0);
+    return jstNow < endTime; 
+  });
+    if (MODE === "workcheck" && isWorkingNow) {
+        console.log(`${store} 勤務中`);
+        //     sendSlack = false;
+        //continue;
+    }
+  // ⓶ 勤務時間・サマリー
+   let totalHours = "0.00";
+   let summaryStr = "";
+    if (staff.length > 0) {
+      let totalNum = 0;
+      const summaryMap = {};
+      staff.forEach(s => {
+        const h = calcIndividualWork(s);
+        totalNum += parseFloat(h);
+        summaryMap[h] = (summaryMap[h] || 0) + 1;
+      });
+      totalHours = totalNum.toFixed(2);
+      summaryStr = Object.entries(summaryMap).map(([h, c]) => `${h}時間x${c}人`).join(", ");
+    }
+    message += `\n${store}\n人数:${staff.length}\n`;
+    staff.forEach(s => { message += `・${s.name} (${s.start}〜${s.end})\n`; });
+    message += `合計勤務時間:${totalHours}時間\n内訳:${summaryStr}\n募集残:${vacancy}人\n`;
+    anyStoreSent = true;
+ 
+  // ⓷ シート上書き
+  await writeSheet(date, time, store, count, staff.map(s => s.name.replace(/\s.*/g,'')).join(","), totalHours, vacancy, summaryStr);
     
 
   }    //ループ終了
