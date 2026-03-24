@@ -60,10 +60,10 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
   const dd = parts.find(p => p.type === 'day').value; 
   const date = `${yyyy}/${mm}/${dd}`;
   const time = jstNow.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
-  const searchDate = "3月19日";
-  const dateParam = "2026-03-19";
- // const searchDate = `${mm}月${dd}日`;
- // const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+ // const searchDate = "3月19日";
+ // const dateParam = "2026-03-19";
+  const searchDate = `${mm}月${dd}日`;
+  const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
 
   
   let slackMessage = '【Timee勤務確認】';
@@ -246,23 +246,61 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
 
     console.log(`${store} 完了`);
     if (amTotal > 0 || pmTotal > 0) anyStoreSent = true;
-    
 
-    
-//名前取得テスト中
-    // --- ⓷ 集計と報告表示 ---
-  /*
-    let amTotal = 0, pmTotal = 0, shiftLines = [];
-    results.forEach(job => {
-      if (job.startH < 12) amTotal += job.applied;
-      if (job.endH > 13) pmTotal += job.applied;
-      shiftLines.push(`　${job.time_full}　　${job.applied}　（${job.vacancy}）`);
-      if (job.vacancy > 0) anyVacancies = true;
-    });
-    slackMessage += `\n--- ${store} 報告 ---\n${searchDate}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
-    console.log(`${store} 完了  ${slackMessage}`);
-    if(amTotal>0||pmTotal>0) anyStoreSent = true;
-  */
+   // ファイル処理
+  const files = fs.readdirSync(downloadPath);
+  const latestFile = files.filter(f => f.endsWith('.xlsx')).map(f => ({ name: f, time: fs.statSync(f).mtime.getTime() })).sort((a, b) => b.time - a.time)[0]?.name;
+  //if (!latestFile) continue;
+
+  const filePath = `timee_${CLIENT_ID}_${yyyy}${mm}${dd}.xlsx`;
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  fs.renameSync(latestFile, filePath);
+  console.log("Excel保存完了:", filePath);
+
+ // Excel解析
+  const workbook = XLSX.readFile(filePath);
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+  const staff = rawData.slice(1).map(row => {
+      if (!row[1] || row[1] === "氏名") return null;
+      return { name: row[1], start: row[4], end: row[5] };
+   }).filter(Boolean);
+ 
+  // ⓵ 就業中判断
+  const isWorkingNow = staff.some(s => {
+    if (!s.end) return false;
+    const [h, m] = s.end.split(':');
+    const endTime = new Date(jstNow);
+    endTime.setHours(parseInt(h), parseInt(m), 0);
+    return jstNow < endTime; 
+  });
+    if (MODE === "workcheck" && isWorkingNow) {
+        console.log(`${store} 勤務中`);
+        //     sendSlack = false;
+        //continue;
+    }
+  // ⓶ 勤務時間・サマリー
+   let totalHours = "0.00";
+   let summaryStr = "";
+    if (staff.length > 0) {
+      let totalNum = 0;
+      const summaryMap = {};
+      staff.forEach(s => {
+        const h = calcIndividualWork(s);
+        totalNum += parseFloat(h);
+        summaryMap[h] = (summaryMap[h] || 0) + 1;
+      });
+      totalHours = totalNum.toFixed(2);
+      summaryStr = Object.entries(summaryMap).map(([h, c]) => `${h}時間x${c}人`).join(", ");
+    }
+    message += `\n${store}\n人数:${staff.length}\n`;
+    staff.forEach(s => { message += `・${s.name} (${s.start}〜${s.end})\n`; });
+    message += `合計勤務時間:${totalHours}時間\n内訳:${summaryStr}\n募集残:${vacancy}人\n`;
+    anyStoreSent = true;
+ 
+  // ⓷ シート上書き
+  await writeSheet(date, time, store, count, staff.map(s => s.name.replace(/\s.*/g,'')).join(","), totalHours, vacancy, summaryStr);
+
   }    //ループ終了
 
 //anyStoreSent = false
@@ -281,3 +319,58 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
   fs.writeFileSync('last_status.json', JSON.stringify(statusData));
   await browser.close();
 })();
+
+
+/* --- 関数群 --- */
+function calcIndividualWork(s) {
+  if (!s.start || !s.end) return "0.00";
+  const start = roundUp(new Date(`1970-01-01T${s.start}:00`));
+  const end = roundDown(new Date(`1970-01-01T${s.end}:00`));
+  let h = (end - start) / 3600000;
+  if (h > 3.5) h -= 1;
+  return h.toFixed(2);
+}
+
+
+function roundUp(date){
+ const d=new Date(date);
+ d.setMinutes(Math.ceil(d.getMinutes()/15)*15);
+ return d;
+}
+
+function roundDown(date){
+ const d=new Date(date);
+ d.setMinutes(Math.floor(d.getMinutes()/15)*15);
+ return d;
+}
+
+// 日付表記を統一して比較・更新する関数
+async function writeSheet(date, time, store, count, staff, total, vacancy, summary) {
+  const auth = new google.auth.GoogleAuth({ credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT), scopes: ["https://www.googleapis.com/auth/spreadsheets"] });
+  const sheets = google.sheets({ version: "v4", auth });
+  const spreadsheetId = process.env.SPREADSHEET_ID;
+
+  const normalizeDate = (d) => d?.toString().replace(/-/g, '/').split('/').map(p => parseInt(p)).join('/') || "";
+  const targetDate = normalizeDate(date);
+
+  const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: "Sheet1!A:C" });
+  const rows = res.data.values || [];
+  
+  // A列(日付)とC列(店舗)が一致する行を探す
+  const rowIndex = rows.findIndex(row => normalizeDate(row[0]) === targetDate && row[2]?.trim() === store.trim());
+  const values = [[date, time, store, count, staff, vacancy, total, summary]];
+  if (rowIndex !== -1) {
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `Sheet1!A${rowIndex + 1}`,
+      valueInputOption: "USER_ENTERED",
+      requestBody: { values }
+    });
+    console.log(`${store} のデータを上書きしました。`);
+  } else {
+    await sheets.spreadsheets.values.append({
+      spreadsheetId, range: "Sheet1!A1", valueInputOption: "USER_ENTERED", requestBody: { values }
+    });
+    console.log(`${store} の新規データを追加しました。`);
+  }
+}
