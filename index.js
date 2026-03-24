@@ -60,10 +60,10 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
   const dd = parts.find(p => p.type === 'day').value; 
   const date = `${yyyy}/${mm}/${dd}`;
   const time = jstNow.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
-//const searchDate = "3月19日";
-//const dateParam = "2026-03-19";
-  const searchDate = `${mm}月${dd}日`;
-  const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+  const searchDate = "3月19日";
+  const dateParam = "2026-03-19";
+ // const searchDate = `${mm}月${dd}日`;
+ // const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
 
   
   let slackMessage = '【Timee勤務確認】';
