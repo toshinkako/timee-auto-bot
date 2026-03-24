@@ -228,10 +228,11 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
     let amTotal = 0, pmTotal = 0, shiftLines = [];
     for (const job of results) {
       // ⓵ ワーカー名の後ろに状態を追加（ここでは一律「済み」とするか、要素から取得可能）
-      ///const workerDisplayNames = (job.workerNames || []).map(name => `${name.split(/[\s　]+/)[0]}（済み）`);
-      ///const workersStr = workerDisplayNames.join('、');
-      const workersDetail = ${details.workerDetails.map(d => `${d.name}(${d.status})`).join(", ")};
-      const workersStr = workersDetail.join('、');
+      const workerDisplayNames = (job.workerNames || []).map(name => `${name.split(/[\s　]+/)[0]}（済み）`);
+      const workerDisplayNames = (job.workerDetails || []).map(d => {
+        return `${d.name}（${d.status}）`;
+      });
+      const workersStr = workerDisplayNames.join('、');      
       // ⓷ 残り枠の計算 (applied / capacity から算出)
       const vacancy = job.capacity - job.applied;
       if (vacancy > 0) anyVacancies = true;
