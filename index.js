@@ -176,6 +176,24 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
       ///console.log("--- DEBUG: 募集詳細 HTML END ---");
       // --- デバッグ用ここまで ---
       // 2 & 3. マッチング済みセクションからワーカー名を取得
+      job.workerDetails = await page.evaluate(() => {
+        const details = [];
+        const rows = Array.from(document.querySelectorAll('#matching tbody tr:not(.lg\\:hidden)'));
+        rows.forEach(row => {
+          const nameEl = row.querySelector('.text-m');
+          const statusEl = row.querySelector('div[class*="bg-matchingStatus"], span[class*="Status"]');
+          if (nameEl) {
+            const name = nameEl.innerText.trim().split(/[\s　]+/)[0]; // 苗字のみ
+            const status = statusEl ? statusEl.innerText.trim() : "確定"; // ステータスがなければ「確定」
+            details.push({ name, status });
+          }
+        });
+        return details;
+      });
+      console.log(`取得データ: ${job.workerDetails.map(d => `${d.name}(${d.status})`).join(", ")}`);
+      
+          
+     /*
       job.workerNames = await page.evaluate(() => {
         const names = [];
         const selectors = ['.text-m','div[class*="WorkerName"]','.worker-name','[class*="matching"] span'];
@@ -187,9 +205,8 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
             }
           });
         });
-
         // 「マッチング済み」というテキストを含む要素の親を辿ってリストを探す
-      /*/ タイミーの現在の構造に合わせたセレクタ（仮：変更の可能性あり）
+        // タイミーの現在の構造に合わせたセレクタ（仮：変更の可能性あり）
         const name2s = [];
         const workerElements = document.querySelectorAll('div[class*="WorkerName"], .worker-name, [class*="matching"] span');
         workerElements.forEach(el => {
@@ -198,13 +215,11 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
             name2s.push(name2);
           }
         });
-      */
-
-       // console.log(names,name2s)
+        console.log(names,name2s)
         return names;
       });
       console.log(`取得ワーカー: ${job.workerNames.join(", ") || "なし"}`);
-      
+    */
       
       // 元のリスト画面に戻る
       await page.goBack({ waitUntil: "networkidle2" });
@@ -248,6 +263,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
   */
   }    //ループ終了
 
+anyStoreSent = false
   ////ここまでWEBから
   // Slack通知（更新があった場合のみ）
   if (SLACK_WEBHOOK && anyStoreSent) {
