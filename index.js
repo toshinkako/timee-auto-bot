@@ -127,13 +127,17 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
             let jstEndH = 0;
             let jstTimeFull = jstTimeStr + "～";
             if (timeRangeMatch) {
+        console.log('timeRangeMatch　あり',timeRangeMatch.slice(0,100))
               const [eH, eM] = timeRangeMatch[2].split(':').map(Number);
               const utcEndDate = new Date(Date.UTC(y, m - 1, d, eH, eM));
               const jstEndDate = new Date(utcEndDate.getTime() + (9 * 60 * 60 * 1000));
               jstEndH = jstEndDate.getUTCHours();
               const jstEndM = String(jstEndDate.getUTCMinutes()).padStart(2, '0');
               jstTimeFull = `${jstTimeStr}～${String(jstEndH).padStart(2, '0')}:${jstEndM}`;
+            }else{
+        console.log('timeRangeMatch　なし')
             }
+              
             ///const workerElem = row.querySelector('td.show-only-desktop:nth-child(5)') || row;
             ///const workerText = workerElem.innerText.match(/(\d+)\s*\/\s*(\d+)/);
             
