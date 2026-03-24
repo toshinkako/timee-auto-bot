@@ -240,6 +240,48 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
     console.log(`${store} 完了`);
     if (amTotal > 0 || pmTotal > 0) anyStoreSent = true;
 
+// ボタンクリック処理
+  try {
+    console.log(`${store} のメニュー操作を開始...`);
+    const clickResult = await page.evaluate(async (mm, dd) => {
+      const dateQuery = `${mm}月${dd}日`;
+      const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
+      
+      // 対象の日付を含む行を探す
+      const targetRow = rows.find(r => r.innerText.includes(dateQuery));
+      if (!targetRow) return { success: false, reason: `日付(${dateQuery})の行が見つかりません` };
+      
+      // その行の中にある split-button-menu を探して、中にある展開ボタンをクリック
+      const menuContainer = targetRow.querySelector('[data-testid="split-button-menu"]');
+      const toggleBtn = menuContainer?.querySelector('button');
+      
+      if (!toggleBtn) return { success: false, reason: "メニューボタンが見つかりません" };
+      
+      toggleBtn.click();
+      await new Promise(r => setTimeout(r, 2000));
+      
+      // 出現したメニューから「1日分をまとめて」ボタンを探す
+      // 画面上では「コピー」がメインボタンなので、その下のリストから探す
+      const menuItems = Array.from(document.querySelectorAll('button, li, [role="menuitem"]'));
+      const downloadBtn = menuItems.find(i => i.innerText.includes("1日分") || i.innerText.includes("まとめて"));
+      
+      if (downloadBtn) {
+        downloadBtn.click();
+        return { success: true };
+      }
+      return { success: false, reason: "ダウンロード項目が見つかりません" };
+    }, mm, dd);
+
+    if (!clickResult.success) {
+      console.log(`${store} スキップ: ${clickResult.reason}`);
+      await page.screenshot({ path: `error_${store}_menu.png` });
+      //continue;
+    }
+    await new Promise(r => setTimeout(r, 10000)); // DL待機
+  } catch (e) {
+    console.log(`${store} 操作エラー:`, e.message);
+    continue;
+  }
 
     // ファイル処理
     const files = fs.readdirSync(downloadPath);
