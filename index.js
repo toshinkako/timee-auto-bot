@@ -200,7 +200,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
         });
       */
 
-        console.log(names,name2s)
+       // console.log(names,name2s)
         return names;
       });
       console.log(`取得ワーカー: ${job.workerNames.join(", ") || "なし"}`);
