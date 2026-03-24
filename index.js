@@ -60,10 +60,10 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
   const dd = parts.find(p => p.type === 'day').value; 
   const date = `${yyyy}/${mm}/${dd}`;
   const time = jstNow.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
-  const searchDate = "3月19日";
-  const dateParam = "2026-03-19";
- // const searchDate = `${mm}月${dd}日`;
- // const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+ // const searchDate = "3月19日";
+ // const dateParam = "2026-03-19";
+  const searchDate = `${mm}月${dd}日`;
+  const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
 
   
   let slackMessage = '【Timee勤務確認】';
@@ -189,31 +189,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
         return details;
       });
       console.log(`取得データ: ${job.workerDetails.map(d => `${d.name}(${d.status})`).join(", ")}`);
-      
-          
-     /*
-      job.workerNames = await page.evaluate(() => {
-        const names = [];
-        const selectors = ['.text-m','div[class*="WorkerName"]','.worker-name','[class*="matching"] span'];
-        selectors.forEach(selector => {
-          document.querySelectorAll(selector).forEach(el => {
-            const name = el.innerText.trim();
-            if (name && name.length >= 2 && !names.includes(name) && !["マッチング済み", "チェックイン"].includes(name)) {
-              names.push(name);
-            }
-          });
-        });
-        // 「マッチング済み」というテキストを含む要素の親を辿ってリストを探す
-        // タイミーの現在の構造に合わせたセレクタ（仮：変更の可能性あり）
-        const workerElements = document.querySelectorAll('div[class*="WorkerName"], .worker-name, [class*="matching"] span');
-        workerElements.forEach(el => {
-          const name2 = el.innerText.trim();
-          if (name2 && !names.includes(name2)) name2s.push(name2);
-        });
-        return names;
-      });
-    */
-      
+            
       // 元のリスト画面に戻る
       await page.goBack({ waitUntil: "networkidle2" });
     }
@@ -240,43 +216,35 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
     console.log(`${store} 完了`);
     if (amTotal > 0 || pmTotal > 0) anyStoreSent = true;
 
+///ここから要確認
 // ボタンクリック処理
   try {
     console.log(`${store} のメニュー操作を開始...`);
     const clickResult = await page.evaluate(async (mm, dd) => {
-      ///const dateQuery = `${mm}月${dd}日`;
-      const dateQuery = "3月19日";
-      const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
-      
+      const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));  
       // 対象の日付を含む行を探す
-      const targetRow = rows.find(r => r.innerText.includes(dateQuery));
-      if (!targetRow) return { success: false, reason: `日付(${dateQuery})の行が見つかりません` };
-      
+      const targetRow = rows.find(r => r.innerText.includes(searchDate));
+      if (!targetRow) return { success: false, reason: `日付(${searchDate})の行が見つかりません` };  
       // その行の中にある split-button-menu を探して、中にある展開ボタンをクリック
       const menuContainer = targetRow.querySelector('[data-testid="split-button-menu"]');
-      const toggleBtn = menuContainer?.querySelector('button');
-      
-      if (!toggleBtn) return { success: false, reason: "メニューボタンが見つかりません" };
-      
+      const toggleBtn = menuContainer?.querySelector('button');  
+      if (!toggleBtn) return { success: false, reason: "メニューボタンが見つかりません" };  
       toggleBtn.click();
       await new Promise(r => setTimeout(r, 2000));
       
       // 出現したメニューから「1日分をまとめて」ボタンを探す
-      // 画面上では「コピー」がメインボタンなので、その下のリストから探す
       const menuItems = Array.from(document.querySelectorAll('button, li, [role="menuitem"]'));
       const downloadBtn = menuItems.find(i => i.innerText.includes("1日分") || i.innerText.includes("まとめて"));
-      
       if (downloadBtn) {
         downloadBtn.click();
         return { success: true };
       }
       return { success: false, reason: "ダウンロード項目が見つかりません" };
     }, mm, dd);
-
     if (!clickResult.success) {
       console.log(`${store} スキップ: ${clickResult.reason}`);
       await page.screenshot({ path: `error_${store}_menu.png` });
-      //continue;
+      continue;
     }
     await new Promise(r => setTimeout(r, 10000)); // DL待機
   } catch (e) {
@@ -284,16 +252,17 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
     continue;
   }
 
-    // ファイル処理
-    const files = fs.readdirSync(downloadPath);
-    const latestFile = files.filter(f => f.endsWith('.xlsx')).map(f => ({ name: f, time: fs.statSync(f).mtime.getTime() })).sort((a, b) => b.time - a.time)[0]?.name;
-    if (!latestFile) continue;
+  // ファイル処理
+  const files = fs.readdirSync(downloadPath);
+  const latestFile = files.filter(f => f.endsWith('.xlsx')).map(f => ({ name: f, time: fs.statSync(f).mtime.getTime() })).sort((a, b) => b.time - a.time)[0]?.name;
+  if (!latestFile) continue;
     
-    const filePath = `timee_${CLIENT_ID}_${yyyy}${mm}${dd}.xlsx`;
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    fs.renameSync(latestFile, filePath);
-    console.log("Excel保存完了:", filePath);
-     // Excel解析
+  const filePath = `timee_${CLIENT_ID}_${yyyy}${mm}${dd}.xlsx`;
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  fs.renameSync(latestFile, filePath);
+  console.log("Excel保存完了:", filePath);
+  
+  // Excel解析
   const workbook = XLSX.readFile(filePath);
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
@@ -301,7 +270,6 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
       if (!row[1] || row[1] === "氏名") return null;
       return { name: row[1], start: row[4], end: row[5] };
    }).filter(Boolean);
- 
   // ⓵ 就業中判断
   const isWorkingNow = staff.some(s => {
     if (!s.end) return false;
@@ -310,35 +278,35 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
     endTime.setHours(parseInt(h), parseInt(m), 0);
     return jstNow < endTime; 
   });
-    if (MODE === "workcheck" && isWorkingNow) {
-        console.log(`${store} 勤務中`);
-        //     sendSlack = false;
-        //continue;
-    }
+  if (MODE === "workcheck" && isWorkingNow) {
+    console.log(`${store} 勤務中`);
+    //     sendSlack = false;
+    //continue;
+  }
   // ⓶ 勤務時間・サマリー
-   let totalHours = "0.00";
-   let summaryStr = "";
-    if (staff.length > 0) {
-      let totalNum = 0;
-      const summaryMap = {};
-      staff.forEach(s => {
-        const h = calcIndividualWork(s);
-        totalNum += parseFloat(h);
-        summaryMap[h] = (summaryMap[h] || 0) + 1;
-      });
-      totalHours = totalNum.toFixed(2);
-      summaryStr = Object.entries(summaryMap).map(([h, c]) => `${h}時間x${c}人`).join(", ");
-    }
-    message += `\n${store}\n人数:${staff.length}\n`;
-    staff.forEach(s => { message += `・${s.name} (${s.start}〜${s.end})\n`; });
-    message += `合計勤務時間:${totalHours}時間\n内訳:${summaryStr}\n募集残:${vacancy}人\n`;
-    anyStoreSent = true;
+  let totalHours = "0.00";
+  let summaryStr = "";
+  if (staff.length > 0) {
+    let totalNum = 0;
+    const summaryMap = {};
+    staff.forEach(s => {
+      const h = calcIndividualWork(s);
+      totalNum += parseFloat(h);
+      summaryMap[h] = (summaryMap[h] || 0) + 1;
+    });
+    totalHours = totalNum.toFixed(2);
+    summaryStr = Object.entries(summaryMap).map(([h, c]) => `${h}時間x${c}人`).join(", ");
+  }
+  ///message += `\n${store}\n人数:${staff.length}\n`;
+  ///staff.forEach(s => { message += `・${s.name} (${s.start}〜${s.end})\n`; });
+  ///message += `合計勤務時間:${totalHours}時間\n内訳:${summaryStr}\n募集残:${vacancy}人\n`;
+  ///anyStoreSent = true;
  
   // ⓷ シート上書き
   await writeSheet(date, time, store, count, staff.map(s => s.name.replace(/\s.*/g,'')).join(","), totalHours, vacancy, summaryStr);
     
 
-  }    //ループ終了
+}    //ループ終了
 
 //anyStoreSent = false
   ////ここまでWEBから
