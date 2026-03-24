@@ -100,7 +100,6 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
     }
 
     // --- ⓶ データの抽出 (UTCからJSTへの変換含む) ---
-  if (MODE=='morning'){
     const results = await page.evaluate((targetDate) => {
       const extracted = [];
       const seenLinks = new Set();
@@ -162,6 +161,76 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
       return extracted;
     }, searchDate);
     console.log(`${searchDate}募集: ${results.length}件`);
+//今回追加分
+    console.log(`--- ${store} 解析開始 ---`);
+    await page.goto(offeringsUrl, { waitUntil: "networkidle2" });
+    await new Promise(r => setTimeout(r, 3000));
+    // ⓵ 募集詳細を開いてワーカー名とステータスを取得
+    const detailLinkSelector = `xpath///tr[contains(., "${targetDate}")]//a[contains(@href, "offerings")]`;
+    try {
+      await page.waitForSelector(detailLinkSelector, { timeout: 5000 });
+      await page.click(detailLinkSelector);
+      await page.waitForSelector('#matching', { timeout: 10000 });
+      // 詳細画面でのデータ解析
+      const workerData = await page.evaluate(() => {
+        const rows = Array.from(document.querySelectorAll('#matching tbody tr:not(.lg\\:hidden)'));
+        let allCheckedOut = true;
+        const workers = [];
+        rows.forEach(row => {
+          const nameEl = row.querySelector('.text-m');
+          const statusEl = row.querySelector('.bg-matchingStatus-worked-normal');
+          const timeEl = row.querySelector('td:nth-child(4)'); // チェックイン/アウト列
+          if (nameEl) {
+            const fullName = nameEl.innerText.trim();
+            const timeStr = timeEl ? timeEl.innerText : "";
+            const isWorked = statusEl !== null;
+            if (!isWorked) allCheckedOut = false;
+            workers.push({
+              name: fullName.split(/[\s　]+/)[0], // 苗字のみ
+              time: timeStr
+            });
+            console.log(workers)
+          }
+        });
+        return { workers, allCheckedOut };
+      });
+      // Slackメッセージ用：時間帯別の振り分け
+      const timeGroups = { "08:30": [], "09:00": [], "13:00": [] };
+      workerData.workers.forEach(w => {
+        if (w.time.includes("23:30") || w.time.includes("08:30")) timeGroups["08:30"].push(w.name);
+        else if (w.time.includes("09:00")) timeGroups["09:00"].push(w.name);
+        else if (w.time.includes("13:00")) timeGroups["13:00"].push(w.name);
+      });
+      // 店舗ごとの報告ライン作成 (数値は適宜変数化してください)
+      const storeReport = `
+      --- ${store} 報告 ---
+      ${targetDate}　　午前 5人　午後 7人
+      08:30～14:30　　3　（0）　　　${timeGroups["08:30"].join('、')}
+      09:00～14:30　　2　（0）　　　${timeGroups["09:00"].join('、')}
+      09:00～14:30　　2　（0）　　　${timeGroups["09:00"].join('、')}
+      `.trim();
+      finalSlackMessage += storeReport + "\n";
+      // ② 全員チェックアウト済みの場合のみ、就業予定表をダウンロード
+      if (workerData.allCheckedOut) {
+        console.log(`${store}: 全員稼働済みを確認。ダウンロードを開始します。`);
+        const attendUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/attendances`;
+        await page.goto(attendUrl, { waitUntil: "networkidle2" });
+        // 該当日を探してダウンロードをクリック
+        const dlBtnSelector = `xpath///tr[contains(., "${targetDate}")]//button[contains(., "ダウンロード")]`;
+        await page.waitForSelector(dlBtnSelector, { timeout: 5000 });
+        await page.click(dlBtnSelector);
+        // 「1日分をまとめて」をクリック
+        await page.waitForSelector('text/1日分をまとめて', { timeout: 5000 });
+        await page.click('text/1日分をまとめて');
+        await new Promise(r => setTimeout(r, 8000)); // DL完了待ち
+        console.log(`${store}: ダウンロード完了`);
+      } else {
+        console.log(`${store}: 未稼働者がいるためDLスキップ`);
+      }
+    } catch (e) {
+      console.log(`${store} 解析エラー:`, e.message);
+    }
+    
 //名前取得テスト中ここから
     // --- 【新規追加】詳細画面に移動してワーカー名を取得 ---
     for (const job of results) {
@@ -211,7 +280,6 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
     slackMessage += `\n--- ${store} 報告 ---\n${searchDate}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
     console.log(`${store} 完了  ${slackMessage}`);
     if(amTotal>0||pmTotal>0) anyStoreSent = true;
-   }
   }    //ループ終了
 
   ////ここまでWEBから
