@@ -153,7 +153,8 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
               capacity: capacity,
               vacancy: capacity - applied,
               startH: parseInt(jstHours),
-              endH: jstEndH
+              endH: jstEndH,
+              url: jobUrl
             });
           }
         }
@@ -161,7 +162,44 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
       return extracted;
     }, searchDate);
     console.log(`${searchDate}募集: ${results.length}件`);
+//名前取得テスト中ここから
+    // --- 【新規追加】詳細画面に移動してワーカー名を取得 ---
+    for (const job of results) {
+      console.log(`詳細確認中: ${job.time_full}`);
+      // 1. 募集詳細へ移動（jobUrlを抽出に含めるようresultsを微調整する必要があります）
+      // ここでは、リスト画面で見つけたリンクを元に新しいタブか同じページで移動します
+      await page.goto(job.url, { waitUntil: "networkidle2" });
+      await new Promise(r => setTimeout(r, 3000));
+      // --- 【デバッグ用】HTMLインナーをログ出力（後日削除） ---
+      const bodyHTML = await page.evaluate(() => document.body.innerHTML);
+      console.log("--- DEBUG: 募集詳細 HTML START ---");
+      console.log(bodyHTML); 
+      console.log("--- DEBUG: 募集詳細 HTML END ---");
+      // --- デバッグ用ここまで ---
+      // 2 & 3. マッチング済みセクションからワーカー名を取得
+      job.workerNames = await page.evaluate(() => {
+        const names = [];
+        // 「マッチング済み」というテキストを含む要素の親を辿ってリストを探す
+        // タイミーの現在の構造に合わせたセレクタ（仮：変更の可能性あり）
+        const workerElements = document.querySelectorAll('div[class*="WorkerName"], .worker-name, [class*="matching"] span');
+        
+        workerElements.forEach(el => {
+          const name = el.innerText.trim();
+          if (name && !names.includes(name)) {
+            names.push(name);
+          }
+        });
+        return names;
+      });
 
+      console.log(`取得ワーカー: ${job.workerNames.join(", ") || "なし"}`);
+      
+      // 元のリスト画面に戻る
+      await page.goBack({ waitUntil: "networkidle2" });
+    }
+
+    
+//名前取得テスト中
     // --- ⓷ 集計と報告表示 ---
     let amTotal = 0, pmTotal = 0, shiftLines = [];
     results.forEach(job => {
