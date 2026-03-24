@@ -90,39 +90,33 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
         const buttons = Array.from(document.querySelectorAll('button'));
         const listBtn = buttons.find(b => (b.innerText || "").includes('リスト表示'));
         if (listBtn) {listBtn.click(); return "clicked"; }
-        return "not_found";
       });
-      await page.waitForSelector('table', { timeout: 10000 });
+      await page.waitForSelector('table', { timeout: 10000 }).catch(() => {});
       await new Promise(r => setTimeout(r, 5000));
     } catch (e) {
       console.log(`${store} リスト切り替え失敗:`, e.message);
-      await page.screenshot({ path: `error_${store}_toggle_fail.png` });
     }
-
-    // --- ⓶ データの抽出 (UTCからJSTへの変換含む) ---
+    // --- ⓶ 募集一覧の抽出 (UTC->JST変換含む) ---
     const results = await page.evaluate((searchDate) => {
       const extracted = [];
       const seenLinks = new Set();
       const jobLinks = document.querySelectorAll('a[href*="/offerings/"]');
-
       jobLinks.forEach(link => {
         const jobUrl = link.href;
         if (seenLinks.has(jobUrl)) return;
         const row = link.closest('tr');
         if (!row) return;
 
-        const nextRow = row.nextElementSibling;
-        const isMobileRow = nextRow && nextRow.classList.contains('hide-only-desktop');
-        const combinedText = (row.innerText + " " + (isMobileRow ? nextRow.innerText : "")).replace(/\s+/g, ' ');
-
+        ///const nextRow = row.nextElementSibling;
+        ///const isMobileRow = nextRow && nextRow.classList.contains('hide-only-desktop');
+        ///const combinedText = (row.innerText + " " + (isMobileRow ? nextRow.innerText : "")).replace(/\s+/g, ' ');
+        const combinedText = row.innerText.replace(/\s+/g, ' ');
         const dateMatch = combinedText.match(/(\d{4})年(\d{1,2})月(\d{1,2})日.*?(\d{1,2}):(\d{2})/);
         if (dateMatch) {
           const [_, y, m, d, hh, mm] = dateMatch.map(Number);
           const utcDate = new Date(Date.UTC(y, m - 1, d, hh, mm));
           const jstDate = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000));
-          const jstMonth = jstDate.getUTCMonth() + 1;
-          const jstDay = jstDate.getUTCDate();
-          const jstDateStr = `${jstMonth}月${jstDay}日`;
+          const jstDateStr = `${jstDate.getUTCMonth() + 1}月${jstDate.getUTCDate()}日`;
           const jstHours = String(jstDate.getUTCHours()).padStart(2, '0');
           const jstMins = String(jstDate.getUTCMinutes()).padStart(2, '0');
           const jstTimeStr = `${jstHours}:${jstMins}`;
@@ -140,48 +134,93 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
               const jstEndM = String(jstEndDate.getUTCMinutes()).padStart(2, '0');
               jstTimeFull = `${jstTimeStr}～${String(jstEndH).padStart(2, '0')}:${jstEndM}`;
             }
-            const workerElem = row.querySelector('td.show-only-desktop:nth-child(5)') || row;
-            const workerText = workerElem.innerText.match(/(\d+)\s*\/\s*(\d+)/);
-            let applied = workerText ? parseInt(workerText[1]) : 0;
-            let capacity = workerText ? parseInt(workerText[2]) : 0;
+            ///const workerElem = row.querySelector('td.show-only-desktop:nth-child(5)') || row;
+            ///const workerText = workerElem.innerText.match(/(\d+)\s*\/\s*(\d+)/);
+            
+            const workerText = row.innerText.match(/(\d+)\s*\/\s*(\d+)/);
+
+            ///let applied = workerText ? parseInt(workerText[1]) : 0;
+            ///let capacity = workerText ? parseInt(workerText[2]) : 0;
             const statusEl = row.querySelector('div[class*="bg-offeringStatus"]');
             extracted.push({
+              url: jobUrl,
+              applied: workerText ? parseInt(workerText[1]) : 0,
+              capacity: workerText ? parseInt(workerText[2]) : 0,
+              time_jst_start: String(jstDate.getUTCHours()).padStart(2, '0') + ":" + String(jstDate.getUTCMinutes()).padStart(2, '0'),
+              
               time_jst: jstTimeStr,
               time_full: jstTimeFull,
-              applied: applied,
-              capacity: capacity,
+              ///applied: applied,
+              ///capacity: capacity,
               vacancy: capacity - applied,
               startH: parseInt(jstHours),
-              endH: jstEndH,
-              url: jobUrl
+              endH: jstEndH
             });
           }
         }
       });
       return extracted;
     }, searchDate);
-    console.log(`${searchDate}募集: ${results.length}件`);
+    console.log(`${searchDate}募集: ${results.length}件の詳細を確認します...`);
 //今回追加分
-    console.log(`--- ${store} 解析開始 ---`);
-    await page.goto(offeringsUrl, { waitUntil: "networkidle2" });
-    await new Promise(r => setTimeout(r, 3000));
-    // ⓵ 募集詳細を開いてワーカー名とステータスを取得
-    const detailLinkSelector = `xpath///tr[contains(., "${searchDate}")]//a[contains(@href, "offerings")]`;
-    try {
-      await page.waitForSelector(detailLinkSelector, { timeout: 5000 });
-      await page.click(detailLinkSelector);
-      await page.waitForSelector('#matching', { timeout: 10000 });
-      // 詳細画面でのデータ解析
-      const workerData = await page.evaluate(() => {
-        const rows = Array.from(document.querySelectorAll('#matching tbody tr:not(.lg\\:hidden)'));
-        let allCheckedOut = true;
-        const workers = [];
+    // --- ⓷ 各募集詳細を巡回してワーカー名とステータスを確認 ---
+    const timeGroups = { "08:30": [], "09:00": [], "13:00": [] };
+    let allWorkersCheckedOut = true;
+    let amTotal = 0, pmTotal = 0, shiftLines = [];
+    for (const job of results) {
+      await page.goto(job.url, { waitUntil: "networkidle2" });
+      await page.waitForSelector('#matching', { timeout: 10000 }).catch(() => {});
+      const detailData = await page.evaluate(() => {
+        const rows = Array.from(document.querySelectorAll('#matching tbody tr:not(.lg\\:hidden):not(.sm\\:hidden)'));
+        let workedCount = 0;
+        const names = [];
         rows.forEach(row => {
           const nameEl = row.querySelector('.text-m');
           const statusEl = row.querySelector('.bg-matchingStatus-worked-normal');
-          const timeEl = row.querySelector('td:nth-child(4)'); // チェックイン/アウト列
+          ///const timeEl = row.querySelector('td:nth-child(4)'); // チェックイン/アウト列
           if (nameEl) {
-            const fullName = nameEl.innerText.trim();
+            const lastName = nameEl.innerText.trim().split(/[\s　]+/)[0];
+            names.push(lastName);
+            if (statusEl) workedCount++;
+          }
+          return { names, isFullyWorked: rows.length > 0 && workedCount === rows.length };
+        });
+        // 時間帯別の振り分け (08:30, 09:00, 13:00など)
+        const slot = Object.keys(timeGroups).find(s => job.time_jst_start.includes(s)) || job.time_jst_start;
+        if (!timeGroups[slot]) timeGroups[slot] = [];
+        timeGroups[slot].push(...detailData.names);
+        if (!detailData.isFullyWorked) allWorkersCheckedOut = false;
+
+        // 集計用
+        const startH = parseInt(job.time_jst_start.split(':')[0]);
+        if (startH < 12) amTotal += job.applied;
+        if (startH >= 12) pmTotal += job.applied; // 午後の判定基準は適宜
+        shiftLines.push(`　${job.time_jst_start}～　　${job.applied}　（${job.capacity - job.applied}）　　　${detailData.names.join('、')}`);
+      })
+      // 店舗ごとのメッセージ組み立て
+      slackMessage += `\n--- ${store} 報告 ---\n${searchDate}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
+      if (amTotal > 0 || pmTotal > 0) anyStoreSent = true;
+
+      // --- ⓸ 全員稼働済みの場合のみダウンロード ---
+      if (allWorkersCheckedOut && results.length > 0) {
+        console.log(`${store}: 全員稼働済み。就業予定表をDLします。`);
+        await page.goto(`https://app-new.taimee.co.jp/clients/${CLIENT_ID}/attendances`, { waitUntil: "networkidle2" });
+        const dlBtnXpath = `xpath///tr[contains(., "${searchDate}")]//button[contains(., "ダウンロード")]`;
+        try {
+          await page.waitForSelector(dlBtnXpath, { timeout: 5000 });
+          await page.click(dlBtnXpath);
+          await page.waitForSelector('text/1日分をまとめて', { timeout: 5000 });
+          await page.click('text/1日分をまとめて');
+          await new Promise(r => setTimeout(r, 8000));
+        } catch (e) { console.log("DLボタンが見つかりませんでした"); }
+      }
+    }
+      
+/*    
+        let allCheckedOut = true;
+        const workers = [];
+        rows.forEach(row => {
+
             const timeStr = timeEl ? timeEl.innerText : "";
             const isWorked = statusEl !== null;
             if (!isWorked) allCheckedOut = false;
@@ -189,13 +228,12 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
               name: fullName.split(/[\s　]+/)[0], // 苗字のみ
               time: timeStr
             });
-            console.log(workers)
           }
         });
         return { workers, allCheckedOut };
       });
       // Slackメッセージ用：時間帯別の振り分け
-      const timeGroups = { "08:30": [], "09:00": [], "13:00": [] };
+      
       workerData.workers.forEach(w => {
         if (w.time.includes("23:30") || w.time.includes("08:30")) timeGroups["08:30"].push(w.name);
         else if (w.time.includes("09:00")) timeGroups["09:00"].push(w.name);
@@ -230,14 +268,11 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
     } catch (e) {
       console.log(`${store} 解析エラー:`, e.message);
     }
-    
+
 //名前取得テスト中ここから
     // --- 【新規追加】詳細画面に移動してワーカー名を取得 ---
     for (const job of results) {
-      console.log(`詳細確認中: ${job.time_full}`);
-      // 1. 募集詳細へ移動（jobUrlを抽出に含めるようresultsを微調整する必要があります）
-      // ここでは、リスト画面で見つけたリンクを元に新しいタブか同じページで移動します
-      await page.goto(job.url, { waitUntil: "networkidle2" });
+      await page.goto(job.url, { waitUntil: "networkidle2" });          
       await new Promise(r => setTimeout(r, 3000));
       // --- 【デバッグ用】HTMLインナーをログ出力（後日削除） ---
       const bodyHTML = await page.evaluate(() => document.body.innerHTML);
@@ -268,8 +303,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
       await page.goBack({ waitUntil: "networkidle2" });
     }
 
-    
-//名前取得テスト中
+  //名前取得テスト中
     // --- ⓷ 集計と報告表示 ---
     let amTotal = 0, pmTotal = 0, shiftLines = [];
     results.forEach(job => {
@@ -281,6 +315,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
     slackMessage += `\n--- ${store} 報告 ---\n${searchDate}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
     console.log(`${store} 完了  ${slackMessage}`);
     if(amTotal>0||pmTotal>0) anyStoreSent = true;
+*/
   }    //ループ終了
 
   ////ここまでWEBから
