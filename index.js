@@ -228,7 +228,6 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
     let amTotal = 0, pmTotal = 0, shiftLines = [];
     for (const job of results) {
       // ⓵ ワーカー名の後ろに状態を追加（ここでは一律「済み」とするか、要素から取得可能）
-      const workerDisplayNames = (job.workerNames || []).map(name => `${name.split(/[\s　]+/)[0]}（済み）`);
       const workerDisplayNames = (job.workerDetails || []).map(d => {
         return `${d.name}（${d.status}）`;
       });
