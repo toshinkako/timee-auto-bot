@@ -209,7 +209,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
       09:00～14:30　　2　（0）　　　${timeGroups["09:00"].join('、')}
       09:00～14:30　　2　（0）　　　${timeGroups["09:00"].join('、')}
       `.trim();
-      finalSlackMessage += storeReport + "\n";
+      slackMessage += storeReport + "\n";
       // ② 全員チェックアウト済みの場合のみ、就業予定表をダウンロード
       if (workerData.allCheckedOut) {
         console.log(`${store}: 全員稼働済みを確認。ダウンロードを開始します。`);
@@ -242,7 +242,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
       // --- 【デバッグ用】HTMLインナーをログ出力（後日削除） ---
       const bodyHTML = await page.evaluate(() => document.body.innerHTML);
       console.log("--- DEBUG: 募集詳細 HTML START ---");
-      console.log(bodyHTML); 
+    //  console.log(bodyHTML); 
       console.log("--- DEBUG: 募集詳細 HTML END ---");
       // --- デバッグ用ここまで ---
       // 2 & 3. マッチング済みセクションからワーカー名を取得
@@ -262,6 +262,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
       });
 
       console.log(`取得ワーカー: ${job.workerNames.join(", ") || "なし"}`);
+
       
       // 元のリスト画面に戻る
       await page.goBack({ waitUntil: "networkidle2" });
