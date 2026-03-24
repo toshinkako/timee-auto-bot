@@ -100,7 +100,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
     }
 
     // --- ⓶ データの抽出 (UTCからJSTへの変換含む) ---
-    const results = await page.evaluate((targetDate) => {
+    const results = await page.evaluate((searchDate) => {
       const extracted = [];
       const seenLinks = new Set();
       const jobLinks = document.querySelectorAll('a[href*="/offerings/"]');
@@ -127,7 +127,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
           const jstMins = String(jstDate.getUTCMinutes()).padStart(2, '0');
           const jstTimeStr = `${jstHours}:${jstMins}`;
 
-          if (jstDateStr === targetDate) {
+          if (jstDateStr === searchDate) {
             seenLinks.add(jobUrl);
             const timeRangeMatch = combinedText.match(/(\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})/);
             let jstEndH = 0;
@@ -166,7 +166,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
     await page.goto(offeringsUrl, { waitUntil: "networkidle2" });
     await new Promise(r => setTimeout(r, 3000));
     // ⓵ 募集詳細を開いてワーカー名とステータスを取得
-    const detailLinkSelector = `xpath///tr[contains(., "${targetDate}")]//a[contains(@href, "offerings")]`;
+    const detailLinkSelector = `xpath///tr[contains(., "${searchDate}")]//a[contains(@href, "offerings")]`;
     try {
       await page.waitForSelector(detailLinkSelector, { timeout: 5000 });
       await page.click(detailLinkSelector);
@@ -204,7 +204,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
       // 店舗ごとの報告ライン作成 (数値は適宜変数化してください)
       const storeReport = `
       --- ${store} 報告 ---
-      ${targetDate}　　午前 5人　午後 7人
+      ${searchDate}　　午前 5人　午後 7人
       08:30～14:30　　3　（0）　　　${timeGroups["08:30"].join('、')}
       09:00～14:30　　2　（0）　　　${timeGroups["09:00"].join('、')}
       09:00～14:30　　2　（0）　　　${timeGroups["09:00"].join('、')}
@@ -216,7 +216,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
         const attendUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/attendances`;
         await page.goto(attendUrl, { waitUntil: "networkidle2" });
         // 該当日を探してダウンロードをクリック
-        const dlBtnSelector = `xpath///tr[contains(., "${targetDate}")]//button[contains(., "ダウンロード")]`;
+        const dlBtnSelector = `xpath///tr[contains(., "${searchDate}")]//button[contains(., "ダウンロード")]`;
         await page.waitForSelector(dlBtnSelector, { timeout: 5000 });
         await page.click(dlBtnSelector);
         // 「1日分をまとめて」をクリック
