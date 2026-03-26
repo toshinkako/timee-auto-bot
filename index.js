@@ -209,10 +209,10 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
              if(btn){
                 btn.scrollIntoView();
                 btn.click();
-                 await page.evaluate(() => {
-                   console.log("CLICKED");
-                });
              }
+          });
+          await page.evaluate(() => {
+                   console.log("CLICKED");
           });
           await page.screenshot({ path: 'debug.png', fullPage: true });
         const clicked = await page.evaluate(() => {
