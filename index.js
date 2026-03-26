@@ -344,14 +344,13 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
 
   }
     
- }
  try{
   if (anyVacancies){
     const statusData = { hasVacancies: anyVacancies };
     fs.writeFileSync('last_status.json', JSON.stringify(statusData));
   }
 }catch(e){console.log(e)}
-  await browser.close();
+await browser.close();
 })();
 
 
