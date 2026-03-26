@@ -214,6 +214,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
               console.log("★CSV取得:", url);
               try{
                 const buffer = await res.buffer();
+                if (buffer.length < 100) return;
                 if (buffer && buffer.length > 100) {
                   csvBuffer = buffer;
                 }
@@ -241,7 +242,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
             throw new Error("CSV取得失敗");
           }
 
-          fs.writeFileSync(`users_${CLIENT_ID}.csv`, csvBuffer);
+          fs.writeFileSync(`users_${CLIENT_ID}_${Date.now()}.csv`, csvBuffer);
           console.log("CSV保存完了");
       }catch (e) {
           console.error(`　[エラー] ${e.message}`);
