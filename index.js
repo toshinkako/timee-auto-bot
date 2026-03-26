@@ -253,9 +253,9 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
 //      console.log(`取得データ: ${job.workerDetails.map(d => `${d.name}(${d.status})`).join(", ")}`);
 
       // ログ出力（チェックイン/アウト時間を含む）
-      job.workerDetails.forEach(d => {
-        console.log(`　[ログ] ${d.name}: 状態=${d.status}, 時間=${d.checkTime}`);
-      });            
+//      job.workerDetails.forEach(d => {
+//        console.log(`　[ログ] ${d.name}: 状態=${d.status}, 時間=${d.checkTime}`);
+//      });            
     }
     // --- ⓷ 集計と報告表示 (修正版) ---
     let amTotal = 0, pmTotal = 0, shiftLines = [];
