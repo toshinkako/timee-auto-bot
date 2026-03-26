@@ -214,7 +214,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
       });
             
       // 元のリスト画面に戻る
-      await page.goBack({ waitUntil: "networkidle2" });
+//      await page.goBack({ waitUntil: "networkidle2" });
     }
     // --- ⓷ 集計と報告表示 (修正版) ---
     let amTotal = 0, pmTotal = 0, shiftLines = [];
