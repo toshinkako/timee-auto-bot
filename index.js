@@ -250,7 +250,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
           }
         });
       });
-      console.log(`取得データ: ${job.workerDetails.map(d => `${d.name}(${d.status})`).join(", ")}`);
+//      console.log(`取得データ: ${job.workerDetails.map(d => `${d.name}(${d.status})`).join(", ")}`);
 
       // ログ出力（チェックイン/アウト時間を含む）
       job.workerDetails.forEach(d => {
