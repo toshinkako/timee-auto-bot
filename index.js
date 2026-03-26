@@ -215,6 +215,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
         } catch (e) {
           console.error(`　[エラー] CSVクリック失敗: ${e.message}`);
         }
+      }
 
       
       // --- 【ダウンロードテスト用】ここまで --- ---
