@@ -209,14 +209,17 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
           let csvBuffer = null;
           const listener = async (res) => {
             const url = res.url();
-            if (url.includes('users.csv')) {
+            if (!url.includes('users.csv')) return;
+            if (res.request().method() !== 'GET') return;
               console.log("★CSV取得:", url);
               try{
-                csvBuffer = await res.buffer();
+                const buffer = await res.buffer();
+                if (buffer && buffer.length > 100) {
+                  csvBuffer = buffer;
+                }
               }catch(e){
                 console.log("CSV取得失敗:", e.message);
               }
-            }
           };
           page.on('response', listener);
           const clicked = await page.evaluate(() => {
