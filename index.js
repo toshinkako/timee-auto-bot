@@ -189,15 +189,29 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
         rows.forEach(row => {
           const nameEl = row.querySelector('.text-m');
           const statusEl = row.querySelector('div[class*="bg-matchingStatus"], span[class*="Status"]');
+
+          // --- ⓵ チェックイン/アウト時間を取得 (4番目の列を想定) ---
+          const timeCell = row.querySelectorAll('td')[3]; // 0から数えて3番目＝4列目
+          let checkTime = "未読";
+          if (timeCell) {
+            checkTime = timeCell.innerText.trim().replace(/\s+/g, ' ');
+          }
+
+        
           if (nameEl) {
             const name = nameEl.innerText.trim().split(/[\s　]+/)[0]; // 苗字のみ
-            const status = statusEl ? statusEl.innerText.trim() : "確定"; // ステータスがなければ「確定」
+            const status = statusEl ? statusEl.innerText.trim() : "確定";
             details.push({ name, status });
           }
         });
         return details;
       });
       console.log(`取得データ: ${job.workerDetails.map(d => `${d.name}(${d.status})`).join(", ")}`);
+
+      // ログ出力（チェックイン/アウト時間を含む）
+      job.workerDetails.forEach(d => {
+        console.log(`　[ログ] ${d.name}: 状態=${d.status}, 時間=${d.checkTime}`);
+      });
             
       // 元のリスト画面に戻る
       await page.goBack({ waitUntil: "networkidle2" });
@@ -226,7 +240,18 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
     if (amTotal > 0 || pmTotal > 0) anyStoreSent = true;
 
 ///ここから要確認
-// ボタンクリック処理
+    // --- ⓶ 「1日分をまとめて」ボタンの存在確認ログ ---
+      const hasDownloadBtn = await page.evaluate(() => {
+        const buttons = Array.from(document.querySelectorAll('button'));
+        return buttons.some(b => b.innerText.includes('1日分をまとめて'));
+      });
+      console.log(`　[ログ] 「1日分をまとめて」ボタン: ${hasDownloadBtn ? "あり" : "なし"}`);
+
+      // 元のリスト画面に戻る
+      await page.goBack({ waitUntil: "networkidle2" });
+//ここまでテスト１
+
+  // ボタンクリック処理
   try {
     console.log(`${store} のメニュー操作を開始...`);
     const clickResult = await page.evaluate(async (mm, dd) => {
