@@ -211,6 +211,24 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
                 btn.click();
              }
           });
+          let file = null;
+
+        for(let i=0;i<30;i++){ // 最大30秒待つ
+          const files = fs.readdirSync(downloadPath);
+          const completed = files.find(f => !f.endsWith('.crdownload'));
+          if(completed){
+          file = completed;
+            break;
+          }
+          await new Promise(r => setTimeout(r,1000));
+        }
+      if(!file){
+        throw new Error("ダウンロード失敗 or タイムアウト");
+      }
+      console.log(`　[ログ P2] ダウンロード完了: ${file}`);
+    }catch (e) {
+      console.error(`　[エラー] CSVクリック失敗: ${e.message}`);
+    }
         /*
           const [button] = await page.$x("//button[contains(., 'CSVダウンロード')]");
           if (button) {
@@ -224,7 +242,6 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
             const btn = elements.find(el => el.innerText.includes('CSV') && el.innerText.includes('ダウンロード'));
             if (btn) btn.click();
           });
-      */
           
           await new Promise(resolve => setTimeout(resolve, 5000));
           ///const files = fs.readdirSync(downloadPath).filter(f => !f.endsWith('.crdownload'));
@@ -233,6 +250,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
         } catch (e) {
           console.error(`　[エラー] CSVクリック失敗: ${e.message}`);
         }
+      */
   
       
       // --- 【ダウンロードテスト用】ここまで --- ---
