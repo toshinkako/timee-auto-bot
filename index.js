@@ -2,6 +2,7 @@ const puppeteer = require("puppeteer-core");
 const fs = require("fs");
 const XLSX = require("xlsx");
 const { google } = require("googleapis");
+const nodemailer = require("nodemailer");
 
 const CLIENT_IDS = ["325161","325162"];
 const STORE_NAMES = { "325161":"大山","325162":"一宮"};
@@ -69,6 +70,14 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
   let slackMessage = '【Timee勤務確認】';
   let anyStoreSent = false;
   let anyVacancies = false;
+
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_PASS,
+    },
+  });
 
  /* 店舗ループ */
   for(const CLIENT_ID of CLIENT_IDS){
@@ -308,6 +317,20 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
 
 }    //ループ終了
 
+  if (anyStoreSent) {
+      try {
+      await transporter.sendMail({
+        from: "toshin.kakou@gmail.com",
+        to: "mizuno.yoshifumi@marushin-gp.co.jp",
+        subject: `【Timee報告】${searchDate} 勤務確認`,
+        text: slackMessage, // Slackと同じ内容を送信
+      });
+      console.log("Gmail送信完了");
+    } catch (e) {
+      console.error("Gmail送信エラー:", e.message);
+    }
+  }
+
 //anyStoreSent = false
   ////ここまでWEBから
   // Slack通知（更新があった場合のみ）
@@ -318,6 +341,9 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
       body: JSON.stringify({ text: slackMessage })
     });
     console.log("Slack通知完了");
+
+  }
+    
  }
 
   const statusData = { hasVacancies: anyVacancies };
