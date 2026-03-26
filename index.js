@@ -204,17 +204,6 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
             downloadPath: downloadPath,
           });
           console.log(`　[操作] CSVダウンロード 開始...`);
-          await page.evaluate(() => {
-             const btn = document.querySelector('button[data-dd-action-name*="CSVダウンロード"]');
-             if(btn){
-                btn.scrollIntoView();
-                btn.click();
-             }
-          });
-          await page.evaluate(() => {
-                   console.log("CLICKED");
-          });
-          await page.screenshot({ path: 'debug.png', fullPage: true });
         const clicked = await page.evaluate(() => {
            const btn = document.querySelector('button[data-dd-action-name*="CSVダウンロード"]');
            if(btn){
@@ -222,32 +211,43 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
               return true;
            }
            return false;
-      });
+        });
         console.log("クリック成功:", clicked);
+
+        let csvBuffer = null;
         page.on('response', async (res) => {
           const url = res.url();
-          if(url.includes("csv") || url.includes("download")){
-            console.log("★CSV候補URL:", url);
-           }
-      });
-
-          
-        let file = null;
-        for(let i=0;i<30;i++){ // 最大30秒待つ
-          const files = fs.readdirSync(downloadPath);
-          const completed = files.find(f => !f.endsWith('.crdownload'));
-          if(completed){
-          file = completed;
-            break;
+          if (url.includes('users.csv')) {
+            console.log("★CSV取得:", url);
+            try {
+              csvBuffer = await res.buffer();
+            } catch (e) {
+              console.log("CSV取得失敗:", e.message);
+            }
           }
-          await new Promise(r => setTimeout(r,1000));
+        });
+      await page.evaluate(() => {
+        const btn = document.querySelector('button[data-dd-action-name*="CSVダウンロード"]');
+        if(btn){
+          btn.scrollIntoView();
+          btn.click();
         }
-      if(!file){
-        throw new Error("ダウンロード失敗 or タイムアウト");
+      });
+      for(let i=0;i<10;i++){
+        if(csvBuffer) break;
+        await new Promise(r => setTimeout(r,1000));
       }
-      console.log(`　[ログ P2] ダウンロード完了: ${file}`);
+      if(!csvBuffer){
+        throw new Error("CSV取得失敗");
+      }
+          
+      fs.writeFileSync(`users_${CLIENT_ID}.csv`, csvBuffer);
+      console.log("CSV保存完了");
+          
+        
+
     }catch (e) {
-      console.error(`　[エラー] CSVクリック失敗: ${e.message}`);
+      console.error(`　[エラー] ${e.message}`);
     }
         /*
           const [button] = await page.$x("//button[contains(., 'CSVダウンロード')]");
