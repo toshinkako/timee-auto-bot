@@ -320,7 +320,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
   if (anyStoreSent) {
       try {
       await transporter.sendMail({
-        from: "toshin.kakou@gmail.com",
+        from: `"Timee自動報告システム" <toshin.kakou@gmail.com>`,
         to: "mizuno.yoshifumi@marushin-gp.co.jp",
         subject: `【Timee報告】${searchDate} 勤務確認`,
         text: slackMessage, // Slackと同じ内容を送信
