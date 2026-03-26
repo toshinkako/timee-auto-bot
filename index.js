@@ -240,13 +240,16 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
     if (amTotal > 0 || pmTotal > 0) anyStoreSent = true;
 
 ///ここから要確認
-    // --- ⓶ 「1日分をまとめて」ボタンの存在確認ログ ---
-      const hasDownloadBtn = await page.evaluate(() => {
-        const buttons = Array.from(document.querySelectorAll('button'));
-        return buttons.some(b => b.innerText.includes('1日分をまとめて'));
+    // --- ⓶ 「CSVダウンロード」ボタンの存在確認ログ ---
+      const hasCsvBtn = await page.evaluate(() => {
+        const elements = Array.from(document.querySelectorAll('button, a'));
+        const target = elements.find(el => {
+          const text = el.innerText || "";
+          return text.includes('CSV') && text.includes('ダウンロード');
+        });
+        return target ? { found: true, text: target.innerText.trim() } : { found: false };
       });
-      console.log(`　[ログ] 「1日分をまとめて」ボタン: ${hasDownloadBtn ? "あり" : "なし"}`);
-
+console.log(`　[ログ] CSVダウンロードボタン: ${hasCsvBtn.found ? "あり (" + hasCsvBtn.text + ")" : "なし"}`);
       // 元のリスト画面に戻る
       await page.goBack({ waitUntil: "networkidle2" });
 //ここまでテスト１
@@ -356,7 +359,8 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
     }
   }
 
-//anyStoreSent = false
+anyStoreSent = false
+
   ////ここまでWEBから
   // Slack通知（更新があった場合のみ）
   if (SLACK_WEBHOOK && anyStoreSent) {
