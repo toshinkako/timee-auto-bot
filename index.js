@@ -209,10 +209,29 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
              if(btn){
                 btn.scrollIntoView();
                 btn.click();
+                 await page.evaluate(() => {
+                   console.log("CLICKED");
+                });
              }
           });
-          let file = null;
+        const clicked = await page.evaluate(() => {
+           const btn = document.querySelector('button[data-dd-action-name*="CSVダウンロード"]');
+           if(btn){
+              btn.click();
+              return true;
+           }
+           return false;
+      });
+        console.log("クリック成功:", clicked);
+        page.on('response', async (res) => {
+          const url = res.url();
+          if(url.includes("csv") || url.includes("download")){
+            console.log("★CSV候補URL:", url);
+           }
+      });
 
+          
+        let file = null;
         for(let i=0;i<30;i++){ // 最大30秒待つ
           const files = fs.readdirSync(downloadPath);
           const completed = files.find(f => !f.endsWith('.crdownload'));
