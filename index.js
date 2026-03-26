@@ -217,7 +217,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
                 console.log("CSV取得失敗:", e.message);
               }
             }
-          });
+          };
           page.on('response', listener);
           const clicked = await page.evaluate(() => {
             const btn = document.querySelector('button[data-dd-action-name*="CSVダウンロード"]');
