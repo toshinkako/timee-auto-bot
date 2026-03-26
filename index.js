@@ -183,6 +183,7 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
       ///console.log("--- DEBUG: 募集詳細 HTML END ---");
       // --- デバッグ用ここまで ---
       // --- 【ダウンロードテスト用】（後日削除） ---
+      /*
       const hasCsvBtn3 = await page.evaluate(() => {
         const elements = Array.from(document.querySelectorAll('button, a'));
         const target = elements.find(el => {
@@ -192,17 +193,25 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
         return target ? { found: true, text: target.innerText.trim() } : { found: false };
       });
       console.log(`　[ログ P3] CSVダウンロードボタン: ${hasCsvBtn3.found ? "あり (" + hasCsvBtn3.text + ")" : "なし"}`);
-      if (hasCsvBtn3.found) {
+    　*/
+
+      // ボタンをクリック
         try{
-          // ボタンをクリック
           const downloadPath = require('path').resolve('./downloads');
           if (!fs.existsSync(downloadPath)) fs.mkdirSync(downloadPath);
           await page._client().send('Page.setDownloadBehavior', {
             behavior: 'allow',
             downloadPath: downloadPath,
           });
-
-          console.log(`　[操作] CSVダウンロードを開始します...`);
+          console.log(`　[操作] CSVダウンロード 開始...`);
+          await page.evaluate(() => {
+             const btn = document.querySelector('button[data-dd-action-name*="CSVダウンロード"]');
+             if(btn){
+                btn.scrollIntoView();
+                btn.click();
+             }
+          });
+        /*
           const [button] = await page.$x("//button[contains(., 'CSVダウンロード')]");
           if (button) {
             await button.click();
@@ -210,13 +219,13 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
             // セレクタで再試行
             await page.click('button[data-dd-action-name*="CSVダウンロード"]');
           }
-          /*
           await page.evaluate(() => {
             const elements = Array.from(document.querySelectorAll('button, a'));
             const btn = elements.find(el => el.innerText.includes('CSV') && el.innerText.includes('ダウンロード'));
             if (btn) btn.click();
           });
-          */
+      */
+          
           await new Promise(resolve => setTimeout(resolve, 5000));
           ///const files = fs.readdirSync(downloadPath).filter(f => !f.endsWith('.crdownload'));
           const files = fs.readdirSync(downloadPath);
@@ -224,7 +233,6 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
         } catch (e) {
           console.error(`　[エラー] CSVクリック失敗: ${e.message}`);
         }
-      }
   
       
       // --- 【ダウンロードテスト用】ここまで --- ---
