@@ -7,15 +7,15 @@ const nodemailer = require("nodemailer");
 const CLIENT_IDS = ["325161","325162"];
 const STORE_NAMES = { "325161":"大山","325162":"一宮"};
 const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK;
+let browser;
 
-try{
 (async () => {
-  const browser = await puppeteer.launch({
+try{
+  browser = await puppeteer.launch({
     executablePath:"/usr/bin/google-chrome",
     headless:"new",
     args:["--no-sandbox","--disable-setuid-sandbox"]
   });
-
   const page = await browser.newPage();
   await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
   await page.setExtraHTTPHeaders({ 'Accept-Language': 'ja-JP,ja;q=0.9' });
@@ -498,9 +498,11 @@ anyStoreSent = false
   }catch(e){ console.log('anyVacancies', e) };
   
 await browser.close();
-})();
 } catch (e) { console.error("エラー発生:", e);
-} finally { browser.close(); };
+} finally { 
+  if (browser)await browser.close()
+};
+})();
 
 
 
