@@ -184,7 +184,6 @@ try{
       ///console.log("--- DEBUG: 募集詳細 HTML END ---");
       // --- デバッグ用ここまで ---
       // --- 【ダウンロードテスト用】（後日削除） ---
-    try{
       const downloadPath = require('path').resolve('./downloads');
       if (!fs.existsSync(downloadPath)) fs.mkdirSync(downloadPath);
       await page._client().send('Page.setDownloadBehavior', {
@@ -227,9 +226,7 @@ try{
 
       fs.writeFileSync(`users_${CLIENT_ID}_${Date.now()}.csv`, csvBuffer);
       console.log("CSV保存完了");
-    } catch (e) { console.error(`　[エラー] ${e.message}`); }
 
-    try{  //csv=>sheet
       const csv = csvBuffer.toString("utf-8");
       const lines = csv.split(/\r?\n/).filter(line => line.trim() !== "");
       const data = lines.slice(1).map(l => l.split(","));
@@ -260,10 +257,7 @@ try{
       };
       await writeSheet(searchDate,time,store,staff.length,staffNames,totalHours,vacancy,summaryStr);
       console.log(`[成功] ${store} のデータをシートに記録しました`);
-    } catch (e) { console.log(`[エラー] CSV解析・シート書込失敗: ${e.message}` ); }
       
-
-
       
             
       // --- 【ダウンロードテスト用】ここまで --- ---
@@ -321,6 +315,7 @@ try{
     if (amTotal > 0 || pmTotal > 0) anyStoreSent = true;
 
 ///ここから要確認
+
     // --- ⓶ 「CSVダウンロード」ボタンの存在確認ログ ---
       const hasCsvBtn = await page.evaluate(() => {
         const elements = Array.from(document.querySelectorAll('button, a'));
@@ -333,7 +328,7 @@ try{
   console.log(`　[ログ] CSVダウンロードボタン: ${hasCsvBtn.found ? "あり (" + hasCsvBtn.text + ")" : "なし"}`);
 
     
-///ここからgemini
+/*//ここからgemini
     // --- ⓷ CSVダウンロード実行 ---
       if (hasCsvBtn.found) {
         try{
@@ -380,6 +375,7 @@ try{
           console.error(`　[エラー] CSV処理失敗: ${e.message}`);
         }
       }
+  */
   ////ここまで now
           
 
