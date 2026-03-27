@@ -259,8 +259,8 @@ try{
         summaryStr = Object.entries(summaryMap).map(([h, c]) => `${h}時間x${c}人`).join(", ");
       };
       await writeSheet(searchDate,time,store,staff.length,staffNames,totalHours,vacancy,summaryStr);
-      console.log(`　[成功] ${store} のデータをシートに記録しました`);
-    } catch (e) { `　[エラー] CSV解析・シート書込失敗: ${e.message}` ); }
+      console.log(`[成功] ${store} のデータをシートに記録しました`);
+    } catch (e) { console.log(`[エラー] CSV解析・シート書込失敗: ${e.message}` ); }
       
 
 
@@ -500,7 +500,7 @@ anyStoreSent = false
 await browser.close();
 })();
 } catch (e) { console.error("エラー発生:", e);
-} finally { await browser.close(); };
+} finally { browser.close(); };
 
 
 
