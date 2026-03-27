@@ -74,7 +74,7 @@ try{
       pass: process.env.GMAIL_PASS,
     },
   });
-  let slackMessage = '【Timee勤務確認】';
+  let sendMessage = '【Timee勤務確認】';
   let anyStoreSent = false;
   let anyVacancies = false;
 
@@ -215,7 +215,6 @@ try{
         }
         return false;
       });
-      console.log("クリック成功:", clicked);
       for(let i=0;i<10;i++){
         if(csvBuffer) break;
         await new Promise(r => setTimeout(r,1000));
@@ -236,8 +235,8 @@ try{
       const isWorkingNow = staff.some(s => s.end === null || s.end === '');
       if (MODE === "workcheck" && isWorkingNow) {
         console.log(`${store} 勤務中`);
-        sendSlack = false;
-        continue;
+        anyStoreSent = false;
+//        continue;
       };
       let totalHours = "0.00";
       let summaryStr = "";
@@ -260,7 +259,6 @@ try{
       
             
       // --- 【ダウンロードテスト用】ここまで --- ---
-
       
       // 2 & 3. マッチング済みセクションからワーカー名を取得
       job.workerDetails = await page.evaluate(() => {
@@ -283,13 +281,8 @@ try{
           }
         });
       });
-//      console.log(`取得データ: ${job.workerDetails.map(d => `${d.name}(${d.status})`).join(", ")}`);
-
-      // ログ出力（チェックイン/アウト時間を含む）
-//      job.workerDetails.forEach(d => {
-//        console.log(`　[ログ] ${d.name}: 状態=${d.status}, 時間=${d.checkTime}`);
-//      });            
     }
+
     // --- ⓷ 集計と報告表示 (修正版) ---
     let amTotal = 0, pmTotal = 0, shiftLines = [];
     for (const job of results) {
@@ -306,15 +299,15 @@ try{
       if (job.endH > 13) pmTotal += job.applied;
       shiftLines.push(`　${job.time_full}　　${job.applied}　（${vacancy}）　　${workersStr}`);
     }
-    // 店舗ごとのメッセージ組み立て（既存の slackMessage に追加）
+    // 店舗ごとのメッセージ組み立て
     const storeReport = `\n--- ${store} 報告 ---\n${searchDate}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
-    slackMessage += storeReport;
+    sendMessage += storeReport;
 
     console.log(`${store} 完了`);
     if (amTotal > 0 || pmTotal > 0) anyStoreSent = true;
 
 ///ここから要確認
-
+ /*
     // --- ⓶ 「CSVダウンロード」ボタンの存在確認ログ ---
       const hasCsvBtn = await page.evaluate(() => {
         const elements = Array.from(document.querySelectorAll('button, a'));
@@ -326,8 +319,7 @@ try{
       });
   console.log(`　[ログ] CSVダウンロードボタン: ${hasCsvBtn.found ? "あり (" + hasCsvBtn.text + ")" : "なし"}`);
 
-    
-/*//ここからgemini
+ //ここからgemini
     // --- ⓷ CSVダウンロード実行 ---
       if (hasCsvBtn.found) {
         try{
@@ -418,39 +410,14 @@ try{
       await page.goBack({ waitUntil: "networkidle2" });
 
   /*
-
-  const staff = rawData.slice(1).map(row => {
-      if (!row[1] || row[1] === "氏名") return null;
-      return { name: row[1], start: row[4], end: row[5] };
-   }).filter(Boolean);
-  // ⓵ 就業中判断
-  const isWorkingNow = staff.some(s => {
-    if (!s.end) return false;
-    const [h, m] = s.end.split(':');
-    const endTime = new Date(jstNow);
-    endTime.setHours(parseInt(h), parseInt(m), 0);
-    return jstNow < endTime; 
-  });
-  if (MODE === "workcheck" && isWorkingNow) {
-    console.log(`${store} 勤務中`);
-    //     sendSlack = false;
-    //continue;
-  }
-  // ⓶ 勤務時間・サマリー
-  let totalHours = "0.00";
-  let summaryStr = "";
-  if (staff.length > 0) {
-    let totalNum = 0;
-    const summaryMap = {};
-    staff.forEach(s => {
-      const h = calcIndividualWork(s);
-      totalNum += parseFloat(h);
-      summaryMap[h] = (summaryMap[h] || 0) + 1;
+    const isWorkingNow = staff.some(s => {
+      if (!s.end) return false;
+      const [h, m] = s.end.split(':');
+      const endTime = new Date(jstNow);
+      endTime.setHours(parseInt(h), parseInt(m), 0);
+      return jstNow < endTime; 
     });
-    totalHours = totalNum.toFixed(2);
-    summaryStr = Object.entries(summaryMap).map(([h, c]) => `${h}時間x${c}人`).join(", ");
-  }
-*/
+  */
     ///message += `\n${store}\n人数:${staff.length}\n`;
   ///staff.forEach(s => { message += `・${s.name} (${s.start}〜${s.end})\n`; });
   ///message += `合計勤務時間:${totalHours}時間\n内訳:${summaryStr}\n募集残:${vacancy}人\n`;
@@ -465,7 +432,7 @@ anyStoreSent = false
         from: `"Timee自動報告システム" <toshin.kakou@gmail.com>`,
         to: "mizuno.yoshifumi@marushin-gp.co.jp",
         subject: `【Timee報告】${searchDate} 勤務確認`,
-        text: slackMessage, // Slackと同じ内容を送信
+        text: sendMessage, // Slackと同じ内容を送信
       });
       console.log("Gmail送信完了");
     } catch (e) {
@@ -479,7 +446,7 @@ anyStoreSent = false
     await fetch(SLACK_WEBHOOK, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: slackMessage })
+      body: JSON.stringify({ text: sendMessage })
     });
     console.log("Slack通知完了");
 
