@@ -231,13 +231,13 @@ try{
 
     try{  //csv=>sheet
       const csv = csvBuffer.toString("utf-8");
-      const data = csv.split("\n").map(l => l.split(",")).slice(1);
+      const lines = csv.split(/\r?\n/).filter(line => line.trim() !== "");
+      const data = lines.slice(1).map(l => l.split(","));
+      //const data = csv.split("\n").map(l => l.split(",")).slice(1);
       const staff = data.map(row => {
         return { name: row[1], start: row[10], end: row[11] };
       }).filter(Boolean);
-      const isWorkingNow = staff.some(s => {
-        return (s.end==null||s.end=='')? false: true; 
-      });
+      const isWorkingNow = staff.some(s => s.end === null || s.end === '');
       if (MODE === "workcheck" && isWorkingNow) {
         console.log(`${store} 勤務中`);
         sendSlack = false;
@@ -245,9 +245,11 @@ try{
       };
       let totalHours = "0.00";
       let summaryStr = "";
+      let staffNames = "";
       if (staff.length > 0) {
         let totalNum = 0;
         const summaryMap = {};
+        staffNames = staff.map(s => s.name).join(",");
         staff.forEach(s => {
           const h = calcIndividualWork(s);
           totalNum += parseFloat(h);
@@ -255,12 +257,10 @@ try{
         });
         totalHours = totalNum.toFixed(2);
         summaryStr = Object.entries(summaryMap).map(([h, c]) => `${h}時間x${c}人`).join(", ");
-      }
-
-      
-      await writeSheet(date,time,store,staff.length,staff.name.join(","),totalHours,vacancy,summaryStr);
-      
-    } catch (e) { console.error(`　[エラー] ${e.message}`); }
+      };
+      await writeSheet(searchDate,time,store,staff.length,staffNames,totalHours,vacancy,summaryStr);
+      console.log(`　[成功] ${store} のデータをシートに記録しました`);
+    } catch (e) { `　[エラー] CSV解析・シート書込失敗: ${e.message}` ); }
       
 
 
