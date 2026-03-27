@@ -67,11 +67,6 @@ try{
   const searchDate = `${mm}月${dd}日`;
   const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
 
-  
-  let slackMessage = '【Timee勤務確認】';
-  let anyStoreSent = false;
-  let anyVacancies = false;
-
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -79,10 +74,14 @@ try{
       pass: process.env.GMAIL_PASS,
     },
   });
+  let slackMessage = '【Timee勤務確認】';
+  let anyStoreSent = false;
+  let anyVacancies = false;
 
  /* 店舗ループ */
   for(const CLIENT_ID of CLIENT_IDS){
     const store = STORE_NAMES[CLIENT_ID];
+    let vacancy = 0;
 
     const downloadPath = process.cwd();
     fs.readdirSync(downloadPath).forEach(f => {
@@ -300,7 +299,7 @@ try{
       });
       const workersStr = workerDisplayNames.join('、');      
       // ⓷ 残り枠の計算 (applied / capacity から算出)
-      const vacancy = job.capacity - job.applied;
+      vacancy = job.capacity - job.applied;
       if (vacancy > 0) anyVacancies = true;
       // 午前・午後の集計 ⓶ 報告の形式を作成
       if (job.startH < 12) amTotal += job.applied;
