@@ -140,7 +140,7 @@ try{
           const jstHours = String(jstDate.getUTCHours()).padStart(2, '0');
           const jstMins = String(jstDate.getUTCMinutes()).padStart(2, '0');
           const pjstTimeStr = `${jstHours}:${jstMins}`;
-      if(jstDateStr!==pjstDateStr||jstTimeStr!==pjstTimeStr)console.log('alert time',jstDateStr,pjstDateStr,jstTimeStr,pjstTimeStr)
+    ///  if(jstDateStr!==pjstDateStr||jstTimeStr!==pjstTimeStr)console.log('alert time',jstDateStr,pjstDateStr,jstTimeStr,pjstTimeStr)
 
           if (jstDateStr === targetDate) {
             seenLinks.add(jobUrl);
