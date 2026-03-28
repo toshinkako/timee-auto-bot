@@ -61,10 +61,9 @@ try{
   const dd = String(now.getDate());
   const date = `${yyyy}/${mm}/${dd}`;
   const time = now.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
-  const searchDate = `${mm}月${dd}日`;
+  //const searchDate = `${mm}月${dd}日`;
+const searchDate = "3月19日";
   const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
-  // const searchDate = "3月19日";
-  // const dateParam = "2026-03-19";
   
   const downloadPath = process.cwd();
   fs.readdirSync(downloadPath).forEach(f => {
@@ -126,7 +125,7 @@ try{
           const [_, y, m, d, hh, mm] = dateMatch.map(Number);
           const jstDateStr = `${m}月${d}日`;
           const jstTimeStr = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
-          
+  /*
           const utcDate = new Date(Date.UTC(y, m - 1, d, hh, mm));
           const jstDate = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000));
           const jstMonth = jstDate.getUTCMonth() + 1;
@@ -136,7 +135,7 @@ try{
           const jstMins = String(jstDate.getUTCMinutes()).padStart(2, '0');
           const pjstTimeStr = `${jstHours}:${jstMins}`;
      console.log("alert",jstDateStr,pjstDateStr,jstTimeStr,pjstTimeStr)
-
+*/
           if (jstDateStr === targetDate) {
             seenLinks.add(jobUrl);
             const timeRangeMatch = combinedText.match(/(\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})/);
