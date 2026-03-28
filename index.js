@@ -284,11 +284,12 @@ const searchDate = "3月19日";
     }
 */
     // 店舗ごとのメッセージ組み立て
-    const storeReport = `\n--- ${store} 報告 ---\n${searchDate}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
+    const storeReport = `\n--- ${store} 報告 ---\n${searchDate}`;
+    //const storeReport = `\n--- ${store} 報告 ---\n${searchDate}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
     sendMessage += storeReport;
 
     console.log(`${store} 完了`);
-    if (amTotal > 0 || pmTotal > 0) anyStoreSent = true;
+//    if (amTotal > 0 || pmTotal > 0) anyStoreSent = true;
 
 /*「1日分をまとめて」をダウンロード
   try {
