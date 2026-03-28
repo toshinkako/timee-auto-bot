@@ -96,21 +96,16 @@ try{
     await new Promise(r => setTimeout(r, 5000));
  
     // --- ⓵ リスト表示に切り替え ---
-    try {
-      await page.evaluate(async () => {
-        const buttons = Array.from(document.querySelectorAll('button'));
-        const listBtn = buttons.find(b => (b.innerText || "").includes('リスト表示'));
-        if (listBtn) {listBtn.click(); return "clicked"; }
-        return "not_found";
-      });
-      await page.waitForSelector('table', { timeout: 10000 });
-      await new Promise(r => setTimeout(r, 5000));
-    } catch (e) {
-      console.log(`${store} リスト切り替え失敗:`, e.message);
-      await page.screenshot({ path: `error_${store}_toggle_fail.png` });
-    }
+    await page.evaluate(async () => {
+      const buttons = Array.from(document.querySelectorAll('button'));
+      const listBtn = buttons.find(b => (b.innerText || "").includes('リスト表示'));
+      if (listBtn) {listBtn.click(); return "clicked"; }
+      return "not_found";
+    });
+    await page.waitForSelector('table', { timeout: 10000 });
+    await new Promise(r => setTimeout(r, 5000));
 
-    // --- ⓶ データの抽出 (UTCからJSTへの変換含む) ---
+    // --- ⓶ データの抽出
     const results = await page.evaluate((targetDate) => {
       const extracted = [];
       const seenLinks = new Set();
@@ -140,7 +135,7 @@ try{
           const jstHours = String(jstDate.getUTCHours()).padStart(2, '0');
           const jstMins = String(jstDate.getUTCMinutes()).padStart(2, '0');
           const pjstTimeStr = `${jstHours}:${jstMins}`;
-    ///  if(jstDateStr!==pjstDateStr||jstTimeStr!==pjstTimeStr)console.log('alert time',jstDateStr,pjstDateStr,jstTimeStr,pjstTimeStr)
+     console.log("alert",jstDateStr,pjstDateStr,jstTimeStr,pjstTimeStr)
 
           if (jstDateStr === targetDate) {
             seenLinks.add(jobUrl);
