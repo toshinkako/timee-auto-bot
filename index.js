@@ -66,7 +66,7 @@ try{
  // const dateParam = "2026-03-19";
   const searchDate = `${mm}月${dd}日`;
   const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
-console.log(`parts;${parts} now;${now} jstNow;${jstNow} time;${time}`;
+console.log(`parts:${parts} now:${now} jstNow:${jstNow} time:${time}`;
 
   const downloadPath = process.cwd();
   fs.readdirSync(downloadPath).forEach(f => {
