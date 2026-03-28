@@ -244,7 +244,9 @@ try{
       };
       const staffCount = staff.length;
       totalStaff += staffCount;
-      staffNames.push(...staff.map(s => s.name));
+      staffNames = staffNames.concat(staff.map(s => s.name));
+
+      ///staffNames.push(...staff.map(s => s.name));
       staff.forEach(s => {
         const h = calcIndividualWork(s);
         totalHours += parseFloat(h);
