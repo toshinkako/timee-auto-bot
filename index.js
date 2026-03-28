@@ -160,9 +160,10 @@ const searchDate = "3月19日";
     
     let jobOffer = `${searchDate}募集: ${results.length}件`;
     results.forEach(job => {
-      jobOffer += '\n'+ `　時間: ${job.time_jst} | ${job.vacancy}`;
+      jobOffer += '\n'+ `　時間: ${job.time_full}　${job.applied}| ${job.vacancy}`;
       totalVacancy += vacancy;
     });
+    console.log(totalVacancy);
     console.log(jobOffer);
 
     // --- ＣＳＶからワーカー名を取得 ---
@@ -259,10 +260,10 @@ const searchDate = "3月19日";
     */
     }
     if (results.length > 0) {
-      const summaryStr = Object.entries(storeSummaryMap).map(([h, c]) => `${h}時間x${c}人`).join(", ");
+      const summaryStr = Object.entries(storeSummaryMap).map(([h, c]) => `${h} x ${c}`).join(", ");
       totalHours = totalHours.toFixed(2);
       const staffNamesStr = [...new Set(staffNames)].join(", ");
-      await writeSheet(searchDate,time,store,totalStaff,staffNamesStr,totalHours,totalVacancy,summaryStr);
+      await writeSheet(searchDate,time,store,totalStaff,staffNamesStr,totalVacancy,totalHours,summaryStr);
       console.log(`${store} シート記録`);
     };
 
@@ -392,7 +393,7 @@ function roundDown(date){
 }
 
 // 日付表記を統一して比較・更新する関数
-async function writeSheet(date, time, store, count, staff, total, vacancy, summary) {
+async function writeSheet(date, time, store, count, staff, vacancy, total, summary) {
   const auth = new google.auth.GoogleAuth({ credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT), scopes: ["https://www.googleapis.com/auth/spreadsheets"] });
   const sheets = google.sheets({ version: "v4", auth });
   const spreadsheetId = process.env.SPREADSHEET_ID;
