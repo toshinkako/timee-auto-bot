@@ -35,7 +35,6 @@ try{
     try{
       await page.goto(url,{waitUntil:"networkidle2"});
       await page.waitForSelector("input",{timeout:5000});
-     /// console.log("ログイン　ページ:",url);
       loaded=true;
       break;
     }catch(e){}
@@ -88,6 +87,7 @@ const searchDate = "3月19日";
     let totalHours = 0;
     let staffNames = [];
     let storeSummaryMap = {};
+    let totalVacancy = 0;
 
     const offeringsUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings?date_from=${dateParam}&date_to=${dateParam}`;
     console.log(`\n--- ${store} 処理開始 ---`);
@@ -125,17 +125,7 @@ const searchDate = "3月19日";
           const [_, y, m, d, hh, mm] = dateMatch.map(Number);
           const jstDateStr = `${m}月${d}日`;
           const jstTimeStr = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
-  /*
-          const utcDate = new Date(Date.UTC(y, m - 1, d, hh, mm));
-          const jstDate = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000));
-          const jstMonth = jstDate.getUTCMonth() + 1;
-          const jstDay = jstDate.getUTCDate();
-          const pjstDateStr = `${jstMonth}月${jstDay}日`;
-          const jstHours = String(jstDate.getUTCHours()).padStart(2, '0');
-          const jstMins = String(jstDate.getUTCMinutes()).padStart(2, '0');
-          const pjstTimeStr = `${jstHours}:${jstMins}`;
-     console.log("alert",jstDateStr,pjstDateStr,jstTimeStr,pjstTimeStr)
-*/
+
           if (jstDateStr === targetDate) {
             seenLinks.add(jobUrl);
             const timeRangeMatch = combinedText.match(/(\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})/);
@@ -146,14 +136,6 @@ const searchDate = "3月19日";
               const endTime = timeRangeMatch[2].padStart(5, '0');
               jstTimeFull = `${startTime}～${endTime}`;
               jstEndH = parseInt(endTime.split(':')[0], 10);
-              /*
-              const [eH, eM] = timeRangeMatch[2].split(':').map(Number);
-              const utcEndDate = new Date(Date.UTC(y, m - 1, d, eH, eM));
-              const jstEndDate = new Date(utcEndDate.getTime() + (9 * 60 * 60 * 1000));
-              jstEndH = jstEndDate.getUTCHours();
-              const jstEndM = String(jstEndDate.getUTCMinutes()).padStart(2, '0');
-              jstTimeFull = `${jstTimeStr}～${String(jstEndH).padStart(2, '0')}:${jstEndM}`;
-              */
             }
             const workerElem = row.querySelector('td.show-only-desktop:nth-child(5)') || row;
             const workerText = workerElem.innerText.match(/(\d+)\s*\/\s*(\d+)/);
@@ -166,7 +148,7 @@ const searchDate = "3月19日";
               applied: applied,
               capacity: capacity,
               vacancy: capacity - applied,
-              startH: parseInt(hh),      //parseInt(jstHours),
+              startH: parseInt(hh),
               endH: jstEndH,
               url: jobUrl
             });
@@ -175,15 +157,15 @@ const searchDate = "3月19日";
       });
       return extracted;
     }, searchDate);
+    
     let jobOffer = `${searchDate}募集: ${results.length}件`;
     results.forEach(job => {
-      jobOffer += '\n'+ `[確認] 時間: ${job.time_jst} | ${job.vacancy}`;
+      jobOffer += '\n'+ `　時間: ${job.time_jst} | ${job.vacancy}`;
+      totalVacancy += vacancy;
     });
     console.log(jobOffer);
 
-    console.log(`${searchDate}募集: ${results.length}件`);
-
-    // --- 詳細画面に移動してワーカー名を取得 ---
+    // --- ＣＳＶからワーカー名を取得 ---
     for (const job of results) {
       console.log(`詳細確認中: ${job.time_full}`);
       await page.goto(job.url, { waitUntil: "networkidle2" });
@@ -238,13 +220,11 @@ const searchDate = "3月19日";
       const isWorkingNow = staff.some(s => s.end === null || s.end === '');
       if (MODE === "workcheck" && isWorkingNow) {
         console.log(`${store} 勤務中`);
-        ///anyStoreSent = false;
-        ///return;
+        anyStoreSent = false;
+        return;
       };
       const staffCount = staff.length;
       totalStaff += staffCount;
-      ///staffNames = staffNames.concat(staff.map(s => s.name));
-
       staffNames.push(...staff.map(s => s.name));
       staff.forEach(s => {
         const h = calcIndividualWork(s);
@@ -254,7 +234,7 @@ const searchDate = "3月19日";
       
             
       // --- 【ダウンロードテスト用】ここまで --- ---
-      
+/*不要のはず
       // 2 & 3. マッチング済みセクションからワーカー名を取得
       job.workerDetails = await page.evaluate(() => {
         const details = [];
@@ -276,15 +256,17 @@ const searchDate = "3月19日";
           }
         });
       });
+    */
     }
     if (results.length > 0) {
       const summaryStr = Object.entries(storeSummaryMap).map(([h, c]) => `${h}時間x${c}人`).join(", ");
       totalHours = totalHours.toFixed(2);
       const staffNamesStr = [...new Set(staffNames)].join(", ");
-      await writeSheet(searchDate,time,store,totalStaff,staffNamesStr,totalHours,vacancy,summaryStr);
-      console.log(`[成功] ${store} のデータをシートに記録しました`);
+      await writeSheet(searchDate,time,store,totalStaff,staffNamesStr,totalHours,totalVacancy,summaryStr);
+      console.log(`${store} シート記録`);
     };
-    
+
+/*workerDetailsがないので作り直し
     // --- ⓷ 集計と報告表示 (修正版) ---
     let amTotal = 0, pmTotal = 0, shiftLines = [];
     for (const job of results) {
@@ -293,13 +275,14 @@ const searchDate = "3月19日";
       });
       const workersStr = workerDisplayNames.join('、');      
       // ⓷ 残り枠の計算 (applied / capacity から算出)
-      vacancy = job.capacity - job.applied;
-      if (vacancy > 0) anyVacancies = true;
+    //  vacancy = job.capacity - job.applied;
+    //  if (vacancy > 0) anyVacancies = true;
       // 午前・午後の集計 ⓶ 報告の形式を作成
       if (job.startH < 12) amTotal += job.applied;
       if (job.endH > 13) pmTotal += job.applied;
       shiftLines.push(`　${job.time_full}　　${job.applied}　（${vacancy}）　　${workersStr}`);
     }
+*/
     // 店舗ごとのメッセージ組み立て
     const storeReport = `\n--- ${store} 報告 ---\n${searchDate}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
     sendMessage += storeReport;
