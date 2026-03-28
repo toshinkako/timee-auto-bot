@@ -239,8 +239,8 @@ try{
       const isWorkingNow = staff.some(s => s.end === null || s.end === '');
       if (MODE === "workcheck" && isWorkingNow) {
         console.log(`${store} 勤務中`);
-        anyStoreSent = false;
-        return;
+        ///anyStoreSent = false;
+        ///return;
       };
       const staffCount = staff.length;
       totalStaff += staffCount;
@@ -358,20 +358,15 @@ try{
         text: sendMessage, // Slackと同じ内容を送信
       });
       console.log("Gmail送信完了");
-    } catch (e) {
-      console.error("Gmail送信エラー:", e.message);
+    } catch (e) { console.error("Gmail送信エラー:", e.message); }
+    if (SLACK_WEBHOOK) {
+      await fetch(SLACK_WEBHOOK, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: sendMessage })
+      });
+      console.log("Slack通知完了");
     }
-  }
-
-  ////ここまでWEBから
-  // Slack通知（更新があった場合のみ）
-  if (SLACK_WEBHOOK && anyStoreSent) {
-    await fetch(SLACK_WEBHOOK, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: sendMessage })
-    });
-    console.log("Slack通知完了");
   }
     
   try{
