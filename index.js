@@ -278,7 +278,7 @@ try{
     }
     if (results.length > 0) {
       const summaryStr = Object.entries(storeSummaryMap).map(([h, c]) => `${h}時間x${c}人`).join(", ");
-      totalHours = totalNum.toFixed(2);
+      totalHours = totalHours.toFixed(2);
     };
     ///const staffNamesStr = [...new Set(staffNames)].join(","); // 重複排除して結合
     await writeSheet(searchDate,time,store,totalStaff,staffNames,totalHours,vacancy,summaryStr);
