@@ -404,7 +404,15 @@ async function writeSheet(date, time, store, count, staff, total, vacancy, summa
   const rows = res.data.values || [];
   
   // A列(日付)とC列(店舗)が一致する行を探す
-  const rowIndex = rows.findIndex(row => normalizeDate(row[0]) === targetDate && row[2]?.trim() === store.trim());
+  ///const rowIndex = rows.findIndex(row => normalizeDate(row[0]) === targetDate && row[2]?.trim() === store.trim());
+  const rowIndex = rows.findIndex(row => {
+    if (!row[0] || !row[2]) return false;
+    const d1 = normalizeDate(row[0]);
+    const d2 = normalizeDate(date);
+    const s1 = row[2].toString().trim();
+    const s2 = store.toString().trim();
+    return d1 === d2 && s1 === s2;
+  });
   const values = [[date, time, store, count, staff, vacancy, total, summary]];
   if (rowIndex !== -1) {
     await sheets.spreadsheets.values.update({
