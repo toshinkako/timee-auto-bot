@@ -1,5 +1,7 @@
+process.env.TZ = "Asia/Tokyo";
 const puppeteer = require("puppeteer-core");
 const fs = require("fs");
+const path = require('path');
 const XLSX = require("xlsx");
 const { google } = require("googleapis");
 const nodemailer = require("nodemailer");
@@ -52,23 +54,17 @@ try{
  
   /* 現在時刻 */
   const now = new Date();
-  const jstNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
-  const hour = jstNow.getHours();
+  const hour = now.getHours();
   const MODE = hour < 12 ? "morning" : "workcheck";
-
-  const parts = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "numeric", day: "numeric" }).formatToParts(now);
-  const yyyy = parts.find(p => p.type === 'year').value;
-  const mm = parts.find(p => p.type === 'month').value;
-  const dd = parts.find(p => p.type === 'day').value; 
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1);
+  const dd = String(now.getDate());
   const date = `${yyyy}/${mm}/${dd}`;
-  const time = jstNow.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
- // const searchDate = "3月19日";
- // const dateParam = "2026-03-19";
+  const time = now.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
   const searchDate = `${mm}月${dd}日`;
   const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
-//console.log(`parts:${parts} now:${now} jstNow:${jstNow} time:${time}`;
-console.log("parts:", JSON.stringify(parts)); 
-console.log(`now: ${now.toISOString()} | jstNow: ${jstNow.toLocaleString()} | time: ${time}`);
+  // const searchDate = "3月19日";
+  // const dateParam = "2026-03-19";
   
   const downloadPath = process.cwd();
   fs.readdirSync(downloadPath).forEach(f => {
@@ -194,8 +190,7 @@ console.log(`now: ${now.toISOString()} | jstNow: ${jstNow.toLocaleString()} | ti
       ///console.log("--- DEBUG: 募集詳細 HTML START ---");
       ///console.log(bodyHTML); 
       ///console.log("--- DEBUG: 募集詳細 HTML END ---");
-      // --- デバッグ用ここまで ---
-      // --- 【ダウンロードテスト用】（後日削除） ---
+      // --- 【デバッグ用ここまで用】（後日削除） ---
       const downloadPath = require('path').resolve('./downloads');
       if (!fs.existsSync(downloadPath)) fs.mkdirSync(downloadPath);
       await page._client().send('Page.setDownloadBehavior', {
@@ -209,7 +204,7 @@ console.log(`now: ${now.toISOString()} | jstNow: ${jstNow.toLocaleString()} | ti
         const url = res.url();
         if (!url.includes('users.csv')) return;
         if (res.request().method() !== 'GET') return;
-        console.log("★CSV取得:", url);
+        console.log('CSV取得:', url);
         try{
           const buffer = await res.buffer();
           if (buffer.length < 100) return;
@@ -234,22 +229,23 @@ console.log(`now: ${now.toISOString()} | jstNow: ${jstNow.toLocaleString()} | ti
       }
       page.off('response', listener);
       if(!csvBuffer){ throw new Error("CSV取得失敗"); }
-
-      fs.writeFileSync(`users_${CLIENT_ID}_${Date.now()}.csv`, csvBuffer);
+      const tempCsvName = `users_${CLIENT_ID}_${Date.now()}.csv`;
+      const tempCsvPath = path.join(downloadPath, tempCsvName);
+      fs.writeFileSync(tempCsvPath, csvBuffer);
       console.log("CSV保存完了");
 
       const csv = csvBuffer.toString("utf-8");
       const lines = csv.split(/\r?\n/).filter(line => line.trim() !== "");
       const data = lines.slice(1).map(l => l.split(","));
-      //const data = csv.split("\n").map(l => l.split(",")).slice(1);
       const staff = data.map(row => {
         return { name: row[1], start: row[10], end: row[11] };
       }).filter(Boolean);
+      if (fs.existsSync(tempCsvPath)) fs.unlinkSync(tempCsvPath);
       const isWorkingNow = staff.some(s => s.end === null || s.end === '');
       if (MODE === "workcheck" && isWorkingNow) {
         console.log(`${store} 勤務中`);
         anyStoreSent = false;
-//        continue;
+        return;
       };
       let totalHours = "0.00";
       let summaryStr = "";
@@ -269,8 +265,6 @@ console.log(`now: ${now.toISOString()} | jstNow: ${jstNow.toLocaleString()} | ti
       await writeSheet(searchDate,time,store,staff.length,staffNames,totalHours,vacancy,summaryStr);
       console.log(`[成功] ${store} のデータをシートに記録しました`);
       
-      
-            
       // --- 【ダウンロードテスト用】ここまで --- ---
       
       // 2 & 3. マッチング済みセクションからワーカー名を取得
@@ -319,71 +313,6 @@ console.log(`now: ${now.toISOString()} | jstNow: ${jstNow.toLocaleString()} | ti
     console.log(`${store} 完了`);
     if (amTotal > 0 || pmTotal > 0) anyStoreSent = true;
 
-///ここから要確認
- /*
-    // --- ⓶ 「CSVダウンロード」ボタンの存在確認ログ ---
-      const hasCsvBtn = await page.evaluate(() => {
-        const elements = Array.from(document.querySelectorAll('button, a'));
-        const target = elements.find(el => {
-          const text = el.innerText || "";
-          return text.includes('CSV') && text.includes('ダウンロード');
-        });
-        return target ? { found: true, text: target.innerText.trim() } : { found: false };
-      });
-  console.log(`　[ログ] CSVダウンロードボタン: ${hasCsvBtn.found ? "あり (" + hasCsvBtn.text + ")" : "なし"}`);
-
- //ここからgemini
-    // --- ⓷ CSVダウンロード実行 ---
-      if (hasCsvBtn.found) {
-        try{
-          const path = require('path');
-          const downloadPath = path.resolve('./downloads');
-          if (!fs.existsSync(downloadPath)) fs.mkdirSync(downloadPath, { recursive: true });
-          
-          // 【重要】CDPセッションを使用してダウンロードを強制許可
-          const client = await page.target().createCDPSession();
-          await client.send('Page.setDownloadBehavior', {
-            behavior: 'allow',
-            downloadPath: downloadPath,
-          });
-          console.log(`　[操作] CSVボタンを物理クリックします...`);
-          const [button] = await page.$x("//button[contains(., 'CSVダウンロード')]");
-          if (button) {
-            await button.click();
-          } else {
-            // セレクタで再試行
-            await page.click('button[data-dd-action-name*="CSVダウンロード"]');
-          }            
-          // 【追加】ファイルが生成されるまで最大10秒ループで待機
-          let fileName = "";
-          for (let i = 0; i < 10; i++) {
-            const files = fs.readdirSync(downloadPath).filter(f => !f.endsWith('.crdownload')); // 一時ファイルを除外
-            if (files.length > 0) {
-              fileName = files[0];
-              break;
-            }
-            await new Promise(r => setTimeout(r, 1000)); // 1秒待機
-          }
-          if (fileName) {
-            console.log(`　[成功] ダウンロード完了: ${fileName}`);
-            // --- ここでCSVの中身を確認 (最初の数行だけ) ---
-            const csvContent = fs.readFileSync(path.join(downloadPath, fileName), 'utf8');
-            console.log(`　[ログ] CSV冒頭: ${csvContent.split('\n').slice(0, 2).join(' ')}`);
-            
-            // 次の処理のためにファイルを消しておく（任意）
-            // fs.unlinkSync(path.join(downloadPath, fileName));
-          } else {
-            console.log(`　[警告] タイムアウト: ファイルが確認できませんでした`);
-          }
-        } catch (e) {
-          console.error(`　[エラー] CSV処理失敗: ${e.message}`);
-        }
-      }
-  */
-  ////ここまで now
-          
-
-
 /*「1日分をまとめて」をダウンロード
   try {
     console.log(`${store} のメニュー操作を開始...`);
@@ -419,23 +348,9 @@ console.log(`now: ${now.toISOString()} | jstNow: ${jstNow.toLocaleString()} | ti
   }
 */
 
-    // 元のリスト画面に戻る（コメントアウトを外して復旧）
-      await page.goBack({ waitUntil: "networkidle2" });
 
-  /*
-    const isWorkingNow = staff.some(s => {
-      if (!s.end) return false;
-      const [h, m] = s.end.split(':');
-      const endTime = new Date(jstNow);
-      endTime.setHours(parseInt(h), parseInt(m), 0);
-      return jstNow < endTime; 
-    });
-  */
-    ///message += `\n${store}\n人数:${staff.length}\n`;
-  ///staff.forEach(s => { message += `・${s.name} (${s.start}〜${s.end})\n`; });
-  ///message += `合計勤務時間:${totalHours}時間\n内訳:${summaryStr}\n募集残:${vacancy}人\n`;
-  ///anyStoreSent = true;
- 
+    // 元のリスト画面に戻る（コメントアウトを外して復旧）
+    await page.goBack({ waitUntil: "networkidle2" });
   }    //ループ終了
 
 anyStoreSent = false
@@ -462,7 +377,6 @@ anyStoreSent = false
       body: JSON.stringify({ text: sendMessage })
     });
     console.log("Slack通知完了");
-
   }
     
   try{
