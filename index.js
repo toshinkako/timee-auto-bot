@@ -244,9 +244,9 @@ try{
       };
       const staffCount = staff.length;
       totalStaff += staffCount;
-      staffNames = staffNames.concat(staff.map(s => s.name));
+      ///staffNames = staffNames.concat(staff.map(s => s.name));
 
-      ///staffNames.push(...staff.map(s => s.name));
+      staffNames.push(...staff.map(s => s.name));
       staff.forEach(s => {
         const h = calcIndividualWork(s);
         totalHours += parseFloat(h);
@@ -281,8 +281,8 @@ try{
     if (results.length > 0) {
       const summaryStr = Object.entries(storeSummaryMap).map(([h, c]) => `${h}時間x${c}人`).join(", ");
       totalHours = totalHours.toFixed(2);
-      ///const staffNamesStr = [...new Set(staffNames)].join(","); // 重複排除して結合
-      await writeSheet(searchDate,time,store,totalStaff,staffNames,totalHours,vacancy,summaryStr);
+      const staffNamesStr = [...new Set(staffNames)].join(", ");
+      await writeSheet(searchDate,time,store,totalStaff,staffNamesStr,totalHours,vacancy,summaryStr);
       console.log(`[成功] ${store} のデータをシートに記録しました`);
     };
     
