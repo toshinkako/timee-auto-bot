@@ -48,7 +48,7 @@ try{
     page.waitForNavigation({waitUntil:"networkidle2"}),
     page.click('button[type="submit"]')
   ]);
-  console.log("ログイン成功",url);
+  console.log("ログイン成功");
  
   /* 現在時刻 */
   const now = new Date();
