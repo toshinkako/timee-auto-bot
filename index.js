@@ -279,12 +279,10 @@ try{
     if (results.length > 0) {
       const summaryStr = Object.entries(storeSummaryMap).map(([h, c]) => `${h}時間x${c}人`).join(", ");
       totalHours = totalHours.toFixed(2);
+      ///const staffNamesStr = [...new Set(staffNames)].join(","); // 重複排除して結合
+      await writeSheet(searchDate,time,store,totalStaff,staffNames,totalHours,vacancy,summaryStr);
+      console.log(`[成功] ${store} のデータをシートに記録しました`);
     };
-    ///const staffNamesStr = [...new Set(staffNames)].join(","); // 重複排除して結合
-    await writeSheet(searchDate,time,store,totalStaff,staffNames,totalHours,vacancy,summaryStr);
-    console.log(`[成功] ${store} のデータをシートに記録しました`);
-
-
     
     // --- ⓷ 集計と報告表示 (修正版) ---
     let amTotal = 0, pmTotal = 0, shiftLines = [];
