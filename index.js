@@ -85,6 +85,10 @@ try{
   for(const CLIENT_ID of CLIENT_IDS){
     const store = STORE_NAMES[CLIENT_ID];
     let vacancy = 0;
+    let totalStaff = 0;
+    let totalHours = 0;
+    let staffNames = [];
+    let storeSummaryMap = {};
 
     const offeringsUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings?date_from=${dateParam}&date_to=${dateParam}`;
     console.log(`\n--- ${store} 処理開始 ---`);
@@ -185,26 +189,17 @@ try{
       console.log(`詳細確認中: ${job.time_full}`);
       await page.goto(job.url, { waitUntil: "networkidle2" });
       await new Promise(r => setTimeout(r, 3000));
-      // --- 【デバッグ用】HTMLインナーをログ出力（後日削除） ---
-      ///const bodyHTML = await page.evaluate(() => document.body.innerHTML);
-      ///console.log("--- DEBUG: 募集詳細 HTML START ---");
-      ///console.log(bodyHTML); 
-      ///console.log("--- DEBUG: 募集詳細 HTML END ---");
-      // --- 【デバッグ用ここまで用】（後日削除） ---
       const downloadPath = require('path').resolve('./downloads');
       if (!fs.existsSync(downloadPath)) fs.mkdirSync(downloadPath);
       await page._client().send('Page.setDownloadBehavior', {
         behavior: 'allow',
         downloadPath: downloadPath,
       });
-      console.log(`　[操作] CSVダウンロード 開始...`);
-
       let csvBuffer = null;
       const listener = async (res) => {
         const url = res.url();
         if (!url.includes('users.csv')) return;
         if (res.request().method() !== 'GET') return;
-        console.log('CSV取得:', url);
         try{
           const buffer = await res.buffer();
           if (buffer.length < 100) return;
@@ -233,7 +228,6 @@ try{
       const tempCsvPath = path.join(downloadPath, tempCsvName);
       fs.writeFileSync(tempCsvPath, csvBuffer);
       console.log("CSV保存完了");
-
       const csv = csvBuffer.toString("utf-8");
       const lines = csv.split(/\r?\n/).filter(line => line.trim() !== "");
       const data = lines.slice(1).map(l => l.split(","));
@@ -241,30 +235,23 @@ try{
         return { name: row[1], start: row[10], end: row[11] };
       }).filter(Boolean);
       if (fs.existsSync(tempCsvPath)) fs.unlinkSync(tempCsvPath);
+
       const isWorkingNow = staff.some(s => s.end === null || s.end === '');
       if (MODE === "workcheck" && isWorkingNow) {
         console.log(`${store} 勤務中`);
         anyStoreSent = false;
         return;
       };
-      let totalHours = "0.00";
-      let summaryStr = "";
-      let staffNames = "";
-      if (staff.length > 0) {
-        let totalNum = 0;
-        const summaryMap = {};
-        staffNames = staff.map(s => s.name).join(",");
-        staff.forEach(s => {
-          const h = calcIndividualWork(s);
-          totalNum += parseFloat(h);
-          summaryMap[h] = (summaryMap[h] || 0) + 1;
-        });
-        totalHours = totalNum.toFixed(2);
-        summaryStr = Object.entries(summaryMap).map(([h, c]) => `${h}時間x${c}人`).join(", ");
-      };
-      await writeSheet(searchDate,time,store,staff.length,staffNames,totalHours,vacancy,summaryStr);
-      console.log(`[成功] ${store} のデータをシートに記録しました`);
+      const staffCount = staff.length;
+      totalStaff += staffCount;
+      staffNames.push(...staff.map(s => s.name));
+      staff.forEach(s => {
+        const h = calcIndividualWork(s);
+        totalHours += parseFloat(h);
+        storeSummaryMap[h] = (storeSummaryMap[h] || 0) + 1;
+      });
       
+            
       // --- 【ダウンロードテスト用】ここまで --- ---
       
       // 2 & 3. マッチング済みセクションからワーカー名を取得
@@ -289,11 +276,19 @@ try{
         });
       });
     }
+    if (results.length > 0) {
+      const summaryStr = Object.entries(storeSummaryMap).map(([h, c]) => `${h}時間x${c}人`).join(", ");
+      totalHours = totalNum.toFixed(2);
+    };
+    ///const staffNamesStr = [...new Set(staffNames)].join(","); // 重複排除して結合
+    await writeSheet(searchDate,time,store,totalStaff,staffNames,totalHours,vacancy,summaryStr);
+    console.log(`[成功] ${store} のデータをシートに記録しました`);
 
+
+    
     // --- ⓷ 集計と報告表示 (修正版) ---
     let amTotal = 0, pmTotal = 0, shiftLines = [];
     for (const job of results) {
-      // ⓵ ワーカー名の後ろに状態を追加（ここでは一律「済み」とするか、要素から取得可能）
       const workerDisplayNames = (job.workerDetails || []).map(d => {
         return `${d.name}（${d.status}）`;
       });
@@ -353,7 +348,7 @@ try{
     await page.goBack({ waitUntil: "networkidle2" });
   }    //ループ終了
 
-anyStoreSent = false
+//anyStoreSent = false
   if (anyStoreSent) {
       try {
       await transporter.sendMail({
