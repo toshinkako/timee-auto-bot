@@ -157,9 +157,6 @@ const searchDate = "3月19日";
             }
             const workerElem = row.querySelector('td.show-only-desktop:nth-child(5)') || row;
             const workerText = workerElem.innerText.match(/(\d+)\s*\/\s*(\d+)/);
-            const progressStatus = workerText ? workerText[0] : "取得失敗";
-            console.log(`求人: ${jobUrl} -> 枠数: ${progressStatus}`);
-
             let applied = workerText ? parseInt(workerText[1]) : 0;
             let capacity = workerText ? parseInt(workerText[2]) : 0;
             const statusEl = row.querySelector('div[class*="bg-offeringStatus"]');
