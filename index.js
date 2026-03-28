@@ -169,7 +169,7 @@ const searchDate = "3月19日";
               applied: applied,
               capacity: capacity,
               vacancy: capacity - applied,
-              startH: parseInt(jstHours),
+              startH: parseInt(hh),      //parseInt(jstHours),
               endH: jstEndH,
               url: jobUrl
             });
