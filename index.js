@@ -142,7 +142,6 @@ const searchDate = "3月19日";
             let jstEndH = 0;
             let jstTimeFull = jstTimeStr + "～";
             if (timeRangeMatch) {
-      console.log('timeRangeMatch',timeRangeMatch)
               const startTime = timeRangeMatch[1].padStart(5, '0');
               const endTime = timeRangeMatch[2].padStart(5, '0');
               jstTimeFull = `${startTime}～${endTime}`;
@@ -158,6 +157,9 @@ const searchDate = "3月19日";
             }
             const workerElem = row.querySelector('td.show-only-desktop:nth-child(5)') || row;
             const workerText = workerElem.innerText.match(/(\d+)\s*\/\s*(\d+)/);
+            const progressStatus = workerText ? workerText[0] : "取得失敗";
+            console.log(`求人: ${jobUrl} -> 枠数: ${progressStatus}`);
+
             let applied = workerText ? parseInt(workerText[1]) : 0;
             let capacity = workerText ? parseInt(workerText[2]) : 0;
             const statusEl = row.querySelector('div[class*="bg-offeringStatus"]');
