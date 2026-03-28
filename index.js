@@ -175,7 +175,7 @@ const searchDate = "3月19日";
       });
       return extracted;
     }, searchDate);
-    const jobOffer = `${searchDate}募集: ${results.length}件`;
+    let jobOffer = `${searchDate}募集: ${results.length}件`;
     results.forEach(job => {
       jobOffer += '\n'+ `[確認] 時間: ${job.time_jst} | ${job.vacancy}`;
     });
