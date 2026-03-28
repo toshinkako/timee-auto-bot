@@ -33,7 +33,7 @@ try{
     try{
       await page.goto(url,{waitUntil:"networkidle2"});
       await page.waitForSelector("input",{timeout:5000});
-      console.log("ログイン　ページ:",url);
+     /// console.log("ログイン　ページ:",url);
       loaded=true;
       break;
     }catch(e){}
@@ -48,7 +48,7 @@ try{
     page.waitForNavigation({waitUntil:"networkidle2"}),
     page.click('button[type="submit"]')
   ]);
-  console.log("ログイン成功");
+  console.log("ログイン成功",url);
  
   /* 現在時刻 */
   const now = new Date();
@@ -66,7 +66,12 @@ try{
  // const dateParam = "2026-03-19";
   const searchDate = `${mm}月${dd}日`;
   const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+console.log(`parts;$(parts} now;${now} jstNow${jstNow} time${time}`;
 
+  const downloadPath = process.cwd();
+  fs.readdirSync(downloadPath).forEach(f => {
+    if(f.endsWith('.csv') || f.endsWith('.xlsx')) fs.unlinkSync(path.join(downloadPath, f));
+  });
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -82,11 +87,6 @@ try{
   for(const CLIENT_ID of CLIENT_IDS){
     const store = STORE_NAMES[CLIENT_ID];
     let vacancy = 0;
-
-    const downloadPath = process.cwd();
-    fs.readdirSync(downloadPath).forEach(f => {
-      if(f.endsWith('.xlsx')) fs.unlinkSync(f);
-    });
 
     const offeringsUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings?date_from=${dateParam}&date_to=${dateParam}`;
     console.log(`\n--- ${store} 処理開始 ---`);
@@ -127,14 +127,18 @@ try{
         const dateMatch = combinedText.match(/(\d{4})年(\d{1,2})月(\d{1,2})日.*?(\d{1,2}):(\d{2})/);
         if (dateMatch) {
           const [_, y, m, d, hh, mm] = dateMatch.map(Number);
+          const jstDateStr = `${m}月${d}日`;
+          const jstTimeStr = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+          
           const utcDate = new Date(Date.UTC(y, m - 1, d, hh, mm));
           const jstDate = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000));
           const jstMonth = jstDate.getUTCMonth() + 1;
           const jstDay = jstDate.getUTCDate();
-          const jstDateStr = `${jstMonth}月${jstDay}日`;
+          const pjstDateStr = `${jstMonth}月${jstDay}日`;
           const jstHours = String(jstDate.getUTCHours()).padStart(2, '0');
           const jstMins = String(jstDate.getUTCMinutes()).padStart(2, '0');
-          const jstTimeStr = `${jstHours}:${jstMins}`;
+          const pjstTimeStr = `${jstHours}:${jstMins}`;
+      if(jstDateStr!==pjstDateStr||jstTimeStr!==pjstTimeStr)console.log('alert time',jstDateStr,pjstDateStr,jstTimeStr,pjstTimeStr)
 
           if (jstDateStr === targetDate) {
             seenLinks.add(jobUrl);
@@ -142,12 +146,19 @@ try{
             let jstEndH = 0;
             let jstTimeFull = jstTimeStr + "～";
             if (timeRangeMatch) {
+      console.log('timeRangeMatch',timeRangeMatch)
+              const startTime = timeRangeMatch[1].padStart(5, '0');
+              const endTime = timeRangeMatch[2].padStart(5, '0');
+              jstTimeFull = `${startTime}～${endTime}`;
+              jstEndH = parseInt(endTime.split(':')[0], 10);
+              /*
               const [eH, eM] = timeRangeMatch[2].split(':').map(Number);
               const utcEndDate = new Date(Date.UTC(y, m - 1, d, eH, eM));
               const jstEndDate = new Date(utcEndDate.getTime() + (9 * 60 * 60 * 1000));
               jstEndH = jstEndDate.getUTCHours();
               const jstEndM = String(jstEndDate.getUTCMinutes()).padStart(2, '0');
               jstTimeFull = `${jstTimeStr}～${String(jstEndH).padStart(2, '0')}:${jstEndM}`;
+              */
             }
             const workerElem = row.querySelector('td.show-only-desktop:nth-child(5)') || row;
             const workerText = workerElem.innerText.match(/(\d+)\s*\/\s*(\d+)/);
