@@ -175,10 +175,13 @@ const searchDate = "3月19日";
       });
       return extracted;
     }, searchDate);
-    console.log(`${searchDate}募集: ${results.length}件`);
+    const jobOffer = `${searchDate}募集: ${results.length}件`;
     results.forEach(job => {
-      console.log(`[確認] 時間: ${job.time_jst} | 募集枠: ${job.progress}`);
+      jobOffer += '\n'+ `[確認] 時間: ${job.time_jst} | ${job.vacancy}`;
     });
+    console.log(jobOffer);
+
+    console.log(`${searchDate}募集: ${results.length}件`);
 
     // --- 詳細画面に移動してワーカー名を取得 ---
     for (const job of results) {
