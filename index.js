@@ -404,7 +404,7 @@ async function writeSheet(date, time, store, count, staff, vacancy, total, summa
   const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: "Sheet1!A:C" });
   const rows = res.data.values || [];
 console.log(normalizeDate(rows[rows.length-1][0]))
-console.log(targetDate)
+console.log('targetDate;',targetDate,'date',date)
   // A列(日付)とC列(店舗)が一致する行を探す
   ///const rowIndex = rows.findIndex(row => normalizeDate(row[0]) === targetDate && row[2]?.trim() === store.trim());
   const rowIndex = rows.findIndex(row => {
