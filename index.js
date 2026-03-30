@@ -263,7 +263,7 @@ const searchDate = "3月19日";
       const summaryStr = Object.entries(storeSummaryMap).map(([h, c]) => `${h} x ${c}`).join(", ");
       totalHours = totalHours.toFixed(2);
       const staffNamesStr = [...new Set(staffNames)].join(", ");
-      await writeSheet(searchDate,time,store,totalStaff,staffNamesStr,totalVacancy,totalHours,summaryStr);
+      await writeSheet(date,time,store,totalStaff,staffNamesStr,totalVacancy,totalHours,summaryStr);
       console.log(`${store} シート記録`);
     };
 
@@ -403,11 +403,10 @@ async function writeSheet(date, time, store, count, staff, vacancy, total, summa
 
   const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: "Sheet1!A:C" });
   const rows = res.data.values || [];
-console.log(normalizeDate(rows[rows.length-1][0]))
+console.log('rows',normalizeDate(rows[rows.length-1][0]))
 console.log('targetDate;',targetDate,'date',date)
-  // A列(日付)とC列(店舗)が一致する行を探す
-  ///const rowIndex = rows.findIndex(row => normalizeDate(row[0]) === targetDate && row[2]?.trim() === store.trim());
-  const rowIndex = rows.findIndex(row => {
+  const rowIndex = rows.findIndex(row => normalizeDate(row[0]) === targetDate && row[2]?.trim() === store.trim());
+/*  const rowIndex = rows.findIndex(row => {
     if (!row[0] || !row[2]) return false;
     const d1 = normalizeDate(row[0]);
     const d2 = normalizeDate(date);
@@ -415,6 +414,7 @@ console.log('targetDate;',targetDate,'date',date)
     const s2 = store.toString().trim();
     return d1 === d2 && s1 === s2;
   });
+*/
   const values = [[date, time, store, count, staff, vacancy, total, summary]];
   if (rowIndex !== -1) {
     await sheets.spreadsheets.values.update({
