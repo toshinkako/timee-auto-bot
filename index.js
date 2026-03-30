@@ -161,9 +161,9 @@ const searchDate = "3月19日";
     let jobOffer = `${searchDate}募集: ${results.length}件`;
     results.forEach(job => {
       jobOffer += '\n'+ `　時間: ${job.time_full}　${job.applied}| ${job.vacancy}`;
-      totalVacancy += vacancy;
+      totalVacancy += job.vacancy;
     });
-    console.log(totalVacancy);
+    console.log('totalVacancy',totalVacancy);
     console.log(jobOffer);
 
     // --- ＣＳＶからワーカー名を取得 ---
@@ -406,15 +406,6 @@ async function writeSheet(date, time, store, count, staff, vacancy, total, summa
 console.log('rows',normalizeDate(rows[rows.length-1][0]))
 console.log('targetDate;',targetDate,'date',date)
   const rowIndex = rows.findIndex(row => normalizeDate(row[0]) === targetDate && row[2]?.trim() === store.trim());
-/*  const rowIndex = rows.findIndex(row => {
-    if (!row[0] || !row[2]) return false;
-    const d1 = normalizeDate(row[0]);
-    const d2 = normalizeDate(date);
-    const s1 = row[2].toString().trim();
-    const s2 = store.toString().trim();
-    return d1 === d2 && s1 === s2;
-  });
-*/
   const values = [[date, time, store, count, staff, vacancy, total, summary]];
   if (rowIndex !== -1) {
     await sheets.spreadsheets.values.update({
