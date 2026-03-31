@@ -242,7 +242,6 @@ try{
     
     if (!isWorking && results.length >0) {
       const staffNamesStr = [...new Set(staffNames)].join(", ");
-  console.log(staffNamesStr,staffNames)      
       const summaryStr = Object.entries(storeSummaryMap).map(([h, c]) => `${h} x ${c}`).join(", ");
       totalHours = totalHours.toFixed(2);
       await writeSheet(date,time,store,totalStaff,staffNamesStr,totalVacancy,totalHours,summaryStr);
@@ -324,16 +323,18 @@ async function writeSheet(date, time, store, count, staff, vacancy, total, summa
   const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: "Sheet1!A:C" });
   const rows = res.data.values || [];
   const rowIndex = rows.findIndex(row => normalizeDate(row[0]) === targetDate && row[2]?.trim() === store.trim());
-  const values = [[date, time, store, count, staff, vacancy, total, summary]];
   if (rowIndex !== -1) {
+    const values = [[staff,total, summary]];
     await sheets.spreadsheets.values.update({
       spreadsheetId,
       range: `Sheet1!A${rowIndex + 1}`,
+      ///range: `Sheet1!J${rowIndex + 1}`,
       valueInputOption: "USER_ENTERED",
       requestBody: { values }
     });
     console.log(`${store} のデータを上書きしました。\n${values}`);
   } else {
+    const values = [[date, time, store, count, staff, vacancy, total, summary]];
     await sheets.spreadsheets.values.append({
       spreadsheetId, range: "Sheet1!A1", valueInputOption: "USER_ENTERED", requestBody: { values }
     });
