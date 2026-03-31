@@ -224,7 +224,7 @@ try{
         if (totalVacancy >0 && hour<12) anyVacancies = true;
         if (job.startH < 12) amTotal += job.applied;
         if (job.endH > 13) pmTotal += job.applied;
-        shiftLines.push(`　${job.time_full}　　${job.applied}　（${vacancy}）　　${staffNames}`);
+        shiftLines.push(`　${job.time_full}　　${job.applied}　（${job.vacancy}）　　${staffNames}`);
       };
       /*const workerDisplayNames = (job.workerDetails || []).map(d => {
         return `${d.name}（${d.status}）`;
@@ -233,7 +233,7 @@ try{
      //勤務結果
       console.log('勤務結果 chk')
       isWorking = staff.some(s => s.end === null || s.end === '');
-      if (isWorkingNow && hour >12) {
+      if (isWorking && hour >12) {
         console.log(`${store} 勤務中あり`);
         if (hour !== 16) return;
         staff.forEach(s => {
@@ -244,7 +244,7 @@ try{
       };
     }; ///for (const job of results).end
     
-    if (!isWorkingNow && results.length >0) {
+    if (!isWorking && results.length >0) {
       const staffNamesStr = [...new Set(staffNames)].join(", ");
   console.log(staffNamesStr,staffNames)      
       const summaryStr = Object.entries(storeSummaryMap).map(([h, c]) => `${h} x ${c}`).join(", ");
