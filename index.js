@@ -325,19 +325,18 @@ async function writeSheet(date, time, store, count, staff, vacancy, total, summa
   const rows = res.data.values || [];
   const rowIndex = rows.findIndex(row => normalizeDate(row[0]) === targetDate && row[2]?.trim() === store.trim());
   const values = [[date, time, store, count, staff, vacancy, total, summary]];
-console.log(date,store,total,summary,rowIndex)
- if (rowIndex !== -1) {
+  if (rowIndex !== -1) {
     await sheets.spreadsheets.values.update({
       spreadsheetId,
       range: `Sheet1!A${rowIndex + 1}`,
       valueInputOption: "USER_ENTERED",
       requestBody: { values }
     });
-    console.log(`${store} のデータを上書きしました。`);
+    console.log(`${store} のデータを上書きしました。\n${values}`);
   } else {
     await sheets.spreadsheets.values.append({
       spreadsheetId, range: "Sheet1!A1", valueInputOption: "USER_ENTERED", requestBody: { values }
     });
-    console.log(`${store} の新規データを追加しました。`);
+    console.log(`${store} の新規データを追加しました。\n${values}`);
   }
 }
