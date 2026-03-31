@@ -78,6 +78,7 @@ try{
   let sendMessage = '【Timee勤務確認】';
   let anyStoreSent = false;
   let anyVacancies = false;
+  let isWorking = false;
   for(const CLIENT_ID of CLIENT_IDS){
    //リスト表示・データ抽出
     const store = STORE_NAMES[CLIENT_ID];
@@ -86,13 +87,13 @@ try{
     let staffNames = [];
     let storeSummaryMap = {};
     let totalVacancy = 0;
-
+    let amTotal = 0, pmTotal = 0, shiftLines = [];
+    
     const offeringsUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings`;
    /// const offeringsUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings?date_from=${dateParam}&date_to=${dateParam}`;
     console.log(`\n--- ${store} 処理開始 ---`);
     await page.goto(offeringsUrl, { waitUntil: "networkidle2" });
     await new Promise(r => setTimeout(r, 5000));
- 
     // --- ⓵ リスト表示に切り替え ---
     await page.evaluate(async () => {
       const buttons = Array.from(document.querySelectorAll('button'));
@@ -102,7 +103,6 @@ try{
     });
     await page.waitForSelector('table', { timeout: 10000 });
     await new Promise(r => setTimeout(r, 5000));
-
     // --- ⓶ データの抽出
     const results = await page.evaluate((targetDate) => {
       const extracted = [];
@@ -126,6 +126,7 @@ try{
           
           if (jstDateStr === targetDate) {
             seenLinks.add(jobUrl);
+           //時間帯get
             const timeRangeMatch = combinedText.match(/(\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})/);
             let jstEndH = 0;
             let jstTimeFull = jstTimeStr + "～";
@@ -135,13 +136,14 @@ try{
               jstTimeFull = `${startTime}～${endTime}`;
               jstEndH = parseInt(endTime.split(':')[0], 10);
             }
+           //募集状況get
             const workerElem = row.querySelector('td.show-only-desktop:nth-child(5)') || row;
             const workerText = workerElem.innerText.match(/(\d+)\s*\/\s*(\d+)/);
             let applied = workerText ? parseInt(workerText[1]) : 0;
             let capacity = workerText ? parseInt(workerText[2]) : 0;
-            const statusEl = row.querySelector('div[class*="bg-offeringStatus"]');
+            ///const statusEl = row.querySelector('div[class*="bg-offeringStatus"]');
             extracted.push({
-              time_jst: jstTimeStr,
+              ///time_jst: jstTimeStr,
               time_full: jstTimeFull,
               applied: applied,
               capacity: capacity,
@@ -156,16 +158,15 @@ try{
       return extracted;
     }, searchDate);
     
-    let jobOffer = `${searchDate}募集: ${results.length}件`;
+    let jobStatus = `${searchDate}募集: ${results.length}件`;
     results.forEach(job => {
-      jobOffer += '\n'+ `　時間: ${job.time_full}　${job.applied} | ${job.vacancy}`;
+      jobStatus += '\n'+ `　時間: ${job.time_full}　${job.applied} | ${job.vacancy}`;
       totalVacancy += job.vacancy;
     });
-    console.log(jobOffer);
-
-  // --- ＣＳＶからワーカー名を取得 ---
+   console.log(jobStatus);
+   //ＣＳＶダウンロード・ワーカー詳細取得
     for (const job of results) {
-      console.log(`詳細確認中: ${job.time_full}`);
+     console.log(`詳細確認開始: ${job.time_full}`);
       await page.goto(job.url, { waitUntil: "networkidle2" });
       await new Promise(r => setTimeout(r, 3000));
       const downloadPath = require('path').resolve('./downloads');
@@ -206,7 +207,7 @@ try{
       const tempCsvName = `users_${CLIENT_ID}_${Date.now()}.csv`;
       const tempCsvPath = path.join(downloadPath, tempCsvName);
       fs.writeFileSync(tempCsvPath, csvBuffer);
-      console.log("CSV保存完了");
+     console.log("CSV保存完了");
       const csv = csvBuffer.toString("utf-8");
       const lines = csv.split(/\r?\n/).filter(line => line.trim() !== "");
       const data = lines.slice(1).map(l => l.split(","));
@@ -214,74 +215,45 @@ try{
         return { name: row[1], start: row[10], end: row[11] };
       }).filter(Boolean);
       if (fs.existsSync(tempCsvPath)) fs.unlinkSync(tempCsvPath);
-
-      const isWorkingNow = staff.some(s => s.end === null || s.end === '');
-      if (MODE === "workcheck" && isWorkingNow) {
-        console.log(`${store} 勤務中`);
-        anyStoreSent = false;
-        return;
-      };
+     //CSV解析
       const staffCount = staff.length;
       totalStaff += staffCount;
       staffNames.push(...staff.map(s => s.name));
-      staff.forEach(s => {
-        const h = calcIndividualWork(s);
-        totalHours += parseFloat(h);
-        storeSummaryMap[h] = (storeSummaryMap[h] || 0) + 1;
-      });
-      
-            
-      // --- 【ダウンロードテスト用】ここまで --- ---
-/*不要のはず
-      // 2 & 3. マッチング済みセクションからワーカー名を取得
-      job.workerDetails = await page.evaluate(() => {
-        const details = [];
-        const rows = Array.from(document.querySelectorAll('#matching tbody tr:not(.lg\\:hidden)'));
-        rows.forEach(row => {
-          const nameEl = row.querySelector('.text-m');
-          const statusEl = row.querySelector('div[class*="bg-matchingStatus"], span[class*="Status"]');
+     //募集確認
+      if (hour<12 || hour==16) {
+        if (totalVacancy >0 && hour<12) anyVacancies = true;
+        if (job.startH < 12) amTotal += job.applied;
+        if (job.endH > 13) pmTotal += job.applied;
+        shiftLines.push(`　${job.time_full}　　${job.applied}　（${vacancy}）　　${staffNames}`);
+      };
+      /*const workerDisplayNames = (job.workerDetails || []).map(d => {
+        return `${d.name}（${d.status}）`;
+      });*/
 
-          // --- ⓵ チェックイン/アウト時間を取得 (4番目の列を想定) ---
-          const timeEls = Array.from(row.querySelectorAll('.text-s, span'));
-          const timeMatches = timeEls
-            .map(el => el.innerText.trim())
-            .filter(txt => /\d{2}:\d{2}/.test(txt));
-          const checkTime = timeMatches.length > 0 ? timeMatches.join(' / ') : "---";          
-          if (nameEl) {
-            const name = nameEl.innerText.trim().split(/[\s　]+/)[0]; // 苗字のみ
-            const status = statusEl ? statusEl.innerText.trim() : "確定";
-            details.push({ name, status, checkTime });
-          }
+     //勤務結果
+      console.log('勤務結果 chk')
+      isWorking = staff.some(s => s.end === null || s.end === '');
+      if (isWorkingNow && hour >12) {
+        console.log(`${store} 勤務中あり`);
+        if (hour !== 16) return;
+        staff.forEach(s => {
+          const h = calcIndividualWork(s);
+          totalHours += parseFloat(h);
+          storeSummaryMap[h] = (storeSummaryMap[h] || 0) + 1;
         });
-      });
-    */
-    }
-    if (results.length > 0) {
+      };
+    }; ///for (const job of results).end
+    
+    if (!isWorkingNow && results.length >0) {
+      const staffNamesStr = [...new Set(staffNames)].join(", ");
+  console.log(staffNamesStr,staffNames)      
       const summaryStr = Object.entries(storeSummaryMap).map(([h, c]) => `${h} x ${c}`).join(", ");
       totalHours = totalHours.toFixed(2);
-      const staffNamesStr = [...new Set(staffNames)].join(", ");
       await writeSheet(date,time,store,totalStaff,staffNamesStr,totalVacancy,totalHours,summaryStr);
       console.log(`${store} シート記録`);
     };
 
-/*workerDetailsがないので作り直し
-    // --- ⓷ 集計と報告表示 (修正版) ---
-    let amTotal = 0, pmTotal = 0, shiftLines = [];
-    for (const job of results) {
-      const workerDisplayNames = (job.workerDetails || []).map(d => {
-        return `${d.name}（${d.status}）`;
-      });
-      const workersStr = workerDisplayNames.join('、');      
-      // ⓷ 残り枠の計算 (applied / capacity から算出)
-    //  vacancy = job.capacity - job.applied;
-    //  if (vacancy > 0) anyVacancies = true;
-      // 午前・午後の集計 ⓶ 報告の形式を作成
-      if (job.startH < 12) amTotal += job.applied;
-      if (job.endH > 13) pmTotal += job.applied;
-      shiftLines.push(`　${job.time_full}　　${job.applied}　（${vacancy}）　　${workersStr}`);
-    }
-*/
-    // 店舗ごとのメッセージ組み立て
+   // 店舗ごとのメッセージ組み立て
     const storeReport = `\n--- ${store} 報告 ---\n${searchDate}`;
     //const storeReport = `\n--- ${store} 報告 ---\n${searchDate}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
     sendMessage += storeReport;
@@ -329,7 +301,7 @@ try{
     await page.goBack({ waitUntil: "networkidle2" });
   }    //ループ終了
 
-//anyStoreSent = false
+anyStoreSent = true
   if (anyStoreSent) {
       try {
       await transporter.sendMail({
@@ -357,7 +329,7 @@ try{
     }
   }catch(e){ console.log('anyVacancies', e) };
   
-await browser.close();
+  await browser.close();
 } catch (e) { console.error("エラー発生:", e);
 } finally { 
   if (browser)await browser.close()
