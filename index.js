@@ -229,7 +229,7 @@ try{
      //勤務結果
       console.log('勤務結果 chk')
       isWorking = staff.some(s => s.end === null || s.end === '');
-      if (isWorking && hour >12) {
+      if (!isWorking && hour >12) {
         console.log(`${store} 勤務中あり`);
         if (hour !== 16) return;
         staff.forEach(s => {
