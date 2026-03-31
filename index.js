@@ -226,10 +226,6 @@ try{
         if (job.endH > 13) pmTotal += job.applied;
         shiftLines.push(`　${job.time_full}　　${job.applied}　（${job.vacancy}）　　${staffNames}`);
       };
-      /*const workerDisplayNames = (job.workerDetails || []).map(d => {
-        return `${d.name}（${d.status}）`;
-      });*/
-
      //勤務結果
       console.log('勤務結果 chk')
       isWorking = staff.some(s => s.end === null || s.end === '');
@@ -254,73 +250,31 @@ try{
     };
 
    // 店舗ごとのメッセージ組み立て
-    const storeReport = `\n--- ${store} 報告 ---\n${searchDate}`;
-    //const storeReport = `\n--- ${store} 報告 ---\n${searchDate}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
+    ///const storeReport = `\n--- ${store} 報告 ---\n${searchDate}`;
+    const storeReport = `\n--- ${store} 報告 ---\n${searchDate}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
     sendMessage += storeReport;
-
     console.log(`${store} 完了`);
 
- /*「1日分をまとめて」をダウンロード
-  try {
-    console.log(`${store} のメニュー操作を開始...`);
-    const clickResult = await page.evaluate(async (mm, dd) => {
-      const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));  
-      // 対象の日付を含む行を探す
-      const targetRow = rows.find(r => r.innerText.includes(searchDate));
-      if (!targetRow) return { success: false, reason: `日付(${searchDate})の行が見つかりません` };  
-      // その行の中にある split-button-menu を探して、中にある展開ボタンをクリック
-      const menuContainer = targetRow.querySelector('[data-testid="split-button-menu"]');
-      const toggleBtn = menuContainer?.querySelector('button');  
-      if (!toggleBtn) return { success: false, reason: "メニューボタンが見つかりません" };  
-      toggleBtn.click();
-      await new Promise(r => setTimeout(r, 2000));
-      
-      // 出現したメニューから「1日分をまとめて」ボタンを探す
-      const menuItems = Array.from(document.querySelectorAll('button, li, [role="menuitem"]'));
-      const downloadBtn = menuItems.find(i => i.innerText.includes("1日分") || i.innerText.includes("まとめて"));
-      if (downloadBtn) {
-        downloadBtn.click();
-        return { success: true };
-      }
-      return { success: false, reason: "ダウンロード項目が見つかりません" };
-    }, mm, dd);
-    if (!clickResult.success) {
-      console.log(`${store} スキップ: ${clickResult.reason}`);
-      await page.screenshot({ path: `error_${store}_menu.png` });
-      continue;
-    }
-    await new Promise(r => setTimeout(r, 10000)); // DL待機
-  } catch (e) {
-    console.log(`${store} 操作エラー:`, e.message);
-  }
- */
-
-
-    // 元のリスト画面に戻る（コメントアウトを外して復旧）
     await page.goBack({ waitUntil: "networkidle2" });
   }    //ループ終了
 
 anyStoreSent = true
   if (anyStoreSent) {
-      try {
-      await transporter.sendMail({
-        from: `"Timee自動報告システム" <toshin.kakou@gmail.com>`,
-        to: "mizuno.yoshifumi@marushin-gp.co.jp",
-        subject: `【Timee報告】${searchDate} 勤務確認`,
-        text: sendMessage, // Slackと同じ内容を送信
-      });
-      console.log("Gmail送信完了");
-    } catch (e) { console.error("Gmail送信エラー:", e.message); }
-    if (SLACK_WEBHOOK) {
-      await fetch(SLACK_WEBHOOK, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: sendMessage })
-      });
-      console.log("Slack通知完了");
-    }
-  }
-    
+    await transporter.sendMail({
+      from: `"Timee自動報告" <toshin.kakou@gmail.com>`,
+      to: "mizuno.yoshifumi@marushin-gp.co.jp",
+      subject: `【Timee報告】${searchDate} 勤務確認`,
+      text: sendMessage, // Slackと同じ内容を送信
+    });
+    console.log("Gmail送信完了");
+    await fetch(SLACK_WEBHOOK, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: sendMessage })
+    });
+    console.log("Slack通知完了");
+  };
+  
   try{
     if (anyVacancies){
       const statusData = { hasVacancies: anyVacancies };
@@ -371,7 +325,8 @@ async function writeSheet(date, time, store, count, staff, vacancy, total, summa
   const rows = res.data.values || [];
   const rowIndex = rows.findIndex(row => normalizeDate(row[0]) === targetDate && row[2]?.trim() === store.trim());
   const values = [[date, time, store, count, staff, vacancy, total, summary]];
-  if (rowIndex !== -1) {
+console.log(date,store,totol,summary,rowIndex)
+ if (rowIndex !== -1) {
     await sheets.spreadsheets.values.update({
       spreadsheetId,
       range: `Sheet1!A${rowIndex + 1}`,
