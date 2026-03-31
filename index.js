@@ -325,7 +325,7 @@ async function writeSheet(date, time, store, count, staff, vacancy, total, summa
   const rows = res.data.values || [];
   const rowIndex = rows.findIndex(row => normalizeDate(row[0]) === targetDate && row[2]?.trim() === store.trim());
   const values = [[date, time, store, count, staff, vacancy, total, summary]];
-console.log(date,store,totol,summary,rowIndex)
+console.log(date,store,total,summary,rowIndex)
  if (rowIndex !== -1) {
     await sheets.spreadsheets.values.update({
       spreadsheetId,
