@@ -249,15 +249,14 @@ try{
     };
 
    // 店舗ごとのメッセージ組み立て
-    ///const storeReport = `\n--- ${store} 報告 ---\n${searchDate}`;
     const storeReport = `\n--- ${store} 報告 ---\n${searchDate}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
     sendMessage += storeReport;
-    console.log(`${store} 完了`);
+    console.log(`${store} 完了    ${storeReport}`);
 
     await page.goBack({ waitUntil: "networkidle2" });
   }    //ループ終了
 
-anyStoreSent = true
+ ///anyStoreSent = true
   if (anyStoreSent) {
     await transporter.sendMail({
       from: `"Timee自動報告" <toshin.kakou@gmail.com>`,
@@ -327,12 +326,11 @@ async function writeSheet(date, time, store, count, staff, vacancy, total, summa
     const values = [[staff,total, summary]];
     await sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: `Sheet1!A${rowIndex + 1}`,
-      ///range: `Sheet1!J${rowIndex + 1}`,
+      range: `Sheet1!J${rowIndex + 1}`,
       valueInputOption: "USER_ENTERED",
       requestBody: { values }
     });
-    console.log(`${store} のデータを上書きしました。\n${values}`);
+    console.log(`${store} のデータを上書きしました。${values}`);
   } else {
     const values = [[date, time, store, count, staff, vacancy, total, summary]];
     await sheets.spreadsheets.values.append({
