@@ -259,9 +259,8 @@ try{
     sendMessage += storeReport;
 
     console.log(`${store} 完了`);
-//    if (amTotal > 0 || pmTotal > 0) anyStoreSent = true;
 
-/*「1日分をまとめて」をダウンロード
+ /*「1日分をまとめて」をダウンロード
   try {
     console.log(`${store} のメニュー操作を開始...`);
     const clickResult = await page.evaluate(async (mm, dd) => {
@@ -294,7 +293,7 @@ try{
   } catch (e) {
     console.log(`${store} 操作エラー:`, e.message);
   }
-*/
+ */
 
 
     // 元のリスト画面に戻る（コメントアウトを外して復旧）
