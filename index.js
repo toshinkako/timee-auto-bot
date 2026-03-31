@@ -13,23 +13,46 @@ let browser;
 
 (async () => {
 try{
+ //準備
+  const now = new Date();
+  const hour = now.getHours();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1);
+  const dd = String(now.getDate());
+  const date = `${yyyy}/${mm}/${dd}`;
+  const time = now.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
+  const searchDate = `${mm}月${dd}日`;
+  ///const searchDate = "3月19日";
+  ///const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+  const MODE = hour < 12 ? "morning" : "workcheck";
+  
+  const downloadPath = process.cwd();
+  fs.readdirSync(downloadPath).forEach(f => {
+    if(f.endsWith('.csv') || f.endsWith('.xlsx')) fs.unlinkSync(path.join(downloadPath, f));
+  });
   browser = await puppeteer.launch({
     executablePath:"/usr/bin/google-chrome",
     headless:"new",
     args:["--no-sandbox","--disable-setuid-sandbox"]
   });
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_PASS,
+    },
+  });
+
+ //ログイン
   const page = await browser.newPage();
   await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
   await page.setExtraHTTPHeaders({ 'Accept-Language': 'ja-JP,ja;q=0.9' });
   await page.setDefaultNavigationTimeout(60000);
-
-  console.log("Timeeログイン開始");
   const loginUrls = [
      "https://app-new.taimee.co.jp/login",
      "https://app.taimee.co.jp/login",
      "https://app-new.taimee.co.jp/account"
   ];
-
   let loaded=false;
   for(const url of loginUrls){
     try{
@@ -49,47 +72,23 @@ try{
     page.waitForNavigation({waitUntil:"networkidle2"}),
     page.click('button[type="submit"]')
   ]);
-  console.log("ログイン成功");
- 
-  /* 現在時刻 */
-  const now = new Date();
-  const hour = now.getHours();
-  const MODE = hour < 12 ? "morning" : "workcheck";
-  const yyyy = now.getFullYear();
-  const mm = String(now.getMonth() + 1);
-  const dd = String(now.getDate());
-  const date = `${yyyy}/${mm}/${dd}`;
-  const time = now.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
-  const searchDate = `${mm}月${dd}日`;
-///const searchDate = "3月19日";
-  const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
-  
-  const downloadPath = process.cwd();
-  fs.readdirSync(downloadPath).forEach(f => {
-    if(f.endsWith('.csv') || f.endsWith('.xlsx')) fs.unlinkSync(path.join(downloadPath, f));
-  });
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_PASS,
-    },
-  });
+ console.log("ログイン成功");
+
+ // 店舗ループ
   let sendMessage = '【Timee勤務確認】';
   let anyStoreSent = false;
   let anyVacancies = false;
-
- /* 店舗ループ */
   for(const CLIENT_ID of CLIENT_IDS){
+   //リスト表示・データ抽出
     const store = STORE_NAMES[CLIENT_ID];
-    let vacancy = 0;
     let totalStaff = 0;
     let totalHours = 0;
     let staffNames = [];
     let storeSummaryMap = {};
     let totalVacancy = 0;
 
-    const offeringsUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings?date_from=${dateParam}&date_to=${dateParam}`;
+    const offeringsUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings`;
+   /// const offeringsUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings?date_from=${dateParam}&date_to=${dateParam}`;
     console.log(`\n--- ${store} 処理開始 ---`);
     await page.goto(offeringsUrl, { waitUntil: "networkidle2" });
     await new Promise(r => setTimeout(r, 5000));
@@ -109,23 +108,22 @@ try{
       const extracted = [];
       const seenLinks = new Set();
       const jobLinks = document.querySelectorAll('a[href*="/offerings/"]');
-
       jobLinks.forEach(link => {
         const jobUrl = link.href;
         if (seenLinks.has(jobUrl)) return;
         const row = link.closest('tr');
         if (!row) return;
-
+        
         const nextRow = row.nextElementSibling;
         const isMobileRow = nextRow && nextRow.classList.contains('hide-only-desktop');
         const combinedText = (row.innerText + " " + (isMobileRow ? nextRow.innerText : "")).replace(/\s+/g, ' ');
-
+        
         const dateMatch = combinedText.match(/(\d{4})年(\d{1,2})月(\d{1,2})日.*?(\d{1,2}):(\d{2})/);
         if (dateMatch) {
           const [_, y, m, d, hh, mm] = dateMatch.map(Number);
           const jstDateStr = `${m}月${d}日`;
           const jstTimeStr = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
-
+          
           if (jstDateStr === targetDate) {
             seenLinks.add(jobUrl);
             const timeRangeMatch = combinedText.match(/(\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})/);
@@ -160,13 +158,12 @@ try{
     
     let jobOffer = `${searchDate}募集: ${results.length}件`;
     results.forEach(job => {
-      jobOffer += '\n'+ `　時間: ${job.time_full}　${job.applied}| ${job.vacancy}`;
+      jobOffer += '\n'+ `　時間: ${job.time_full}　${job.applied} | ${job.vacancy}`;
       totalVacancy += job.vacancy;
     });
-    console.log('totalVacancy',totalVacancy);
     console.log(jobOffer);
 
-    // --- ＣＳＶからワーカー名を取得 ---
+  // --- ＣＳＶからワーカー名を取得 ---
     for (const job of results) {
       console.log(`詳細確認中: ${job.time_full}`);
       await page.goto(job.url, { waitUntil: "networkidle2" });
@@ -379,7 +376,6 @@ function calcIndividualWork(s) {
   return h.toFixed(2);
 }
 
-
 function roundUp(date){
  const d=new Date(date);
  d.setMinutes(Math.ceil(d.getMinutes()/15)*15);
@@ -392,7 +388,6 @@ function roundDown(date){
  return d;
 }
 
-// 日付表記を統一して比較・更新する関数
 async function writeSheet(date, time, store, count, staff, vacancy, total, summary) {
   const auth = new google.auth.GoogleAuth({ credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT), scopes: ["https://www.googleapis.com/auth/spreadsheets"] });
   const sheets = google.sheets({ version: "v4", auth });
@@ -403,8 +398,6 @@ async function writeSheet(date, time, store, count, staff, vacancy, total, summa
 
   const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: "Sheet1!A:C" });
   const rows = res.data.values || [];
-console.log('rows',normalizeDate(rows[rows.length-1][0]))
-console.log('targetDate;',targetDate,'date',date)
   const rowIndex = rows.findIndex(row => normalizeDate(row[0]) === targetDate && row[2]?.trim() === store.trim());
   const values = [[date, time, store, count, staff, vacancy, total, summary]];
   if (rowIndex !== -1) {
