@@ -171,7 +171,7 @@ try{
     });
    console.log(jobStatus);
 /////
-    const results = await page.evaluate((targetDate) => {
+    const resultsEX = await page.evaluate((targetDate) => {
       const extracted = [];
       const seenLinks = new Set();
       const jobLinks = document.querySelectorAll('a[href*="/offerings/"]');
@@ -189,7 +189,7 @@ try{
       });
       return extracted;
     }, searchDate);
-  console.log(results);
+  console.log(resultsEX);
    
 /////   
    //ＣＳＶダウンロード・ワーカー詳細取得
