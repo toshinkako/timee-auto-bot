@@ -27,8 +27,8 @@ try{
   const MODE = hour < 12 ? "morning" : "workcheck";
   const nxDate = now;
   nxDate.setDate(now.getDate() + 1);
-          const nxm = String(nxdy.getMonth() + 1);
-          const nxd = String(nxdy.getDate());
+          const nxm = String(nxDate.getMonth() + 1);
+          const nxd = String(nxDate.getDate());
   const nxDateStr = `${nxm}月${nxd}日`;
 console.log('nxDateStr=',nxDateStr)
    
@@ -185,8 +185,16 @@ console.log('nxDateStr=',nxDateStr)
         const isMobileRow = nextRow && nextRow.classList.contains('hide-only-desktop');
         const combinedText = (row.innerText + " " + (isMobileRow ? nextRow.innerText : "")).replace(/\s+/g, ' ');        
         const dateMatch = combinedText.match(/(\d{4})年(\d{1,2})月(\d{1,2})日.*?(\d{1,2}):(\d{2})/);
-        if 
+         const nxDate2 = now;
+         nxDate2.setDate(now.getDate() + 1);
+          const nxm2 = String(nxDate2.getMonth() + 1);
+          const nxd2 = String(nxDate2.getDate());
+  const nxDateStr2 = `${nxm2}月${nxd2}日`;
+console.log('nxDateStr2=',nxDateStr2)
+
+       if (dateMatch.indexOf(targetDate)!==-1 || dateMatch.indexOf(nxDateStr2)!==-1){
         extracted.push({ oriData: dateMatch });
+       }
       });
       return extracted;
     }, searchDate);
