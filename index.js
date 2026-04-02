@@ -147,9 +147,7 @@ try{
             const workerText = workerElem.innerText.match(/(\d+)\s*\/\s*(\d+)/);
             let applied = workerText ? parseInt(workerText[1]) : 0;
             let capacity = workerText ? parseInt(workerText[2]) : 0;
-            ///const statusEl = row.querySelector('div[class*="bg-offeringStatus"]');
             extracted.push({
-              ///time_jst: jstTimeStr,
               time_full: jstTimeFull,
               applied: applied,
               capacity: capacity,
@@ -164,7 +162,7 @@ try{
       return extracted;
     }, searchDate);
     
-    let jobStatus = `${searchDate}募集: ${results.length}件`;
+    let jobStatus = `${searchDate}募集: ${results.length}件 || ${nxDateStr}`;
     results.forEach(job => {
       jobStatus += '\n'+ `　時間: ${job.time_full}　${job.applied} | ${job.vacancy}`;
       totalVacancy += job.vacancy;
@@ -262,7 +260,7 @@ try{
     await page.goBack({ waitUntil: "networkidle2" });
   }    //ループ終了
 
-  if (hour = 6) anyStoreSent = true;
+ /// if (hour===16) anyStoreSent = true;
  ///anyStoreSent = true
   if (anyStoreSent) {
     await transporter.sendMail({
