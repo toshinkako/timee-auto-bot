@@ -132,7 +132,7 @@ console.log('nxDateStr=',nxDateStr)
           const jstTimeStr = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
           
 
-          if (jstDateStr === targetDate || nxDateStr === targetDate ) {
+          if (jstDateStr === targetDate ) {
             seenLinks.add(jobUrl);
            //時間帯get
             const timeRangeMatch = combinedText.match(/(\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})/);
@@ -185,7 +185,8 @@ console.log('nxDateStr=',nxDateStr)
         const isMobileRow = nextRow && nextRow.classList.contains('hide-only-desktop');
         const combinedText = (row.innerText + " " + (isMobileRow ? nextRow.innerText : "")).replace(/\s+/g, ' ');        
         const dateMatch = combinedText.match(/(\d{4})年(\d{1,2})月(\d{1,2})日.*?(\d{1,2}):(\d{2})/);
-         const nxDate2 = now;
+
+       const nxDate2 = now;
          nxDate2.setDate(now.getDate() + 1);
           const nxm2 = String(nxDate2.getMonth() + 1);
           const nxd2 = String(nxDate2.getDate());
