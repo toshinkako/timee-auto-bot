@@ -25,7 +25,7 @@ try{
   ///const searchDate = "3月19日";
   ///const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
   const MODE = hour < 12 ? "morning" : "workcheck";
-  let nxDateStr = `${nxm}月${nxd}日`;
+  let nxDateStr;
 
   
   const downloadPath = process.cwd();
