@@ -90,6 +90,7 @@ try{
     let amTotal = 0, pmTotal = 0, shiftLines = [];
     
     const offeringsUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings`;
+    /// https://app-new.taimee.co.jp/clients/325161/offerings ;
    /// const offeringsUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings?date_from=${dateParam}&date_to=${dateParam}`;
     console.log(`\n--- ${store} 処理開始 ---`);
     await page.goto(offeringsUrl, { waitUntil: "networkidle2" });
@@ -124,7 +125,12 @@ try{
           const jstDateStr = `${m}月${d}日`;
           const jstTimeStr = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
           
-          if (jstDateStr === targetDate) {
+          const nxdy = new Date(y,m-1,d+1);
+          const nxm = String(nxdy.getMonth() + 1);
+          const nxd = String(nxdy.getDate());
+          const nxDateStr = `${nxm}月${nxd}日`;
+
+          if (jstDateStr === targetDate || nxDateStr === targetDate ) {
             seenLinks.add(jobUrl);
            //時間帯get
             const timeRangeMatch = combinedText.match(/(\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})/);
@@ -219,7 +225,7 @@ try{
       const staffCount = staff.length;
       totalStaff += staffCount;
       staffNames.push(...staff.map(s => s.name));
-     //募集確認
+     //募集確認（午前＋16時）
       if (hour<12 || hour==16) {
         if (totalVacancy >0 && hour<12) anyVacancies = true;
         if (job.startH < 12) amTotal += job.applied;
@@ -291,6 +297,9 @@ try{
 
 
 /* --- 関数群 --- */
+
+
+
 function calcIndividualWork(s) {
   if (!s.start || !s.end) return "0.00";
   const start = roundUp(new Date(`1970-01-01T${s.start}:00`));
