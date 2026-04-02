@@ -171,7 +171,8 @@ console.log('nxDateStr=',nxDateStr)
     });
    console.log(jobStatus);
 /////
-    const resultsEX = await page.evaluate((targetDate) => {
+   try{
+     const resultsEX = await page.evaluate((targetDate,nextDate) => {
       const extracted = [];
       const seenLinks = new Set();
       const jobLinks = document.querySelectorAll('a[href*="/offerings/"]');
@@ -186,21 +187,17 @@ console.log('nxDateStr=',nxDateStr)
         const combinedText = (row.innerText + " " + (isMobileRow ? nextRow.innerText : "")).replace(/\s+/g, ' ');        
         const dateMatch = combinedText.match(/(\d{4})年(\d{1,2})月(\d{1,2})日.*?(\d{1,2}):(\d{2})/);
 
-       const nxDate2 = now;
-         nxDate2.setDate(now.getDate() + 1);
-          const nxm2 = String(nxDate2.getMonth() + 1);
-          const nxd2 = String(nxDate2.getDate());
-  const nxDateStr2 = `${nxm2}月${nxd2}日`;
-console.log('nxDateStr2=',nxDateStr2)
 
-       if (dateMatch.indexOf(targetDate)!==-1 || dateMatch.indexOf(nxDateStr2)!==-1){
+console.log('nxDateStr2=',nextDate)
+
+       if (dateMatch.indexOf(targetDate)!==-1 || dateMatch.indexOf(nextDate)!==-1){
         extracted.push({ oriData: dateMatch });
        }
       });
       return extracted;
-    }, searchDate);
+    }, (searchDate,nxDateStr));
   console.log(resultsEX);
-   
+   }catch(e){console.log(e)}
 /////   
    //ＣＳＶダウンロード・ワーカー詳細取得
     for (const job of results) {
