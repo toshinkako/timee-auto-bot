@@ -25,7 +25,13 @@ try{
   ///const searchDate = "3月19日";
   ///const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
   const MODE = hour < 12 ? "morning" : "workcheck";
-  
+  const nxDate = now;
+  nxDate.setDate(now.getDate() + 1);
+          const nxm = String(nxdy.getMonth() + 1);
+          const nxd = String(nxdy.getDate());
+  const nxDateStr = `${nxm}月${nxd}日`;
+console.log('nxDateStr=',nxDateStr)
+   
   const downloadPath = process.cwd();
   fs.readdirSync(downloadPath).forEach(f => {
     if(f.endsWith('.csv') || f.endsWith('.xlsx')) fs.unlinkSync(path.join(downloadPath, f));
@@ -105,8 +111,6 @@ try{
     await page.waitForSelector('table', { timeout: 10000 });
     await new Promise(r => setTimeout(r, 5000));
     // --- ⓶ データの抽出
-    let nxDateStr = date;
- console.log('nxDateStr',nxDateStr)
     const results = await page.evaluate((targetDate) => {
       const extracted = [];
       const seenLinks = new Set();
@@ -127,10 +131,6 @@ try{
           const jstDateStr = `${m}月${d}日`;
           const jstTimeStr = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
           
-          const nxdy = new Date(y,m-1,d+1);
-          const nxm = String(nxdy.getMonth() + 1);
-          const nxd = String(nxdy.getDate());
-          nxDateStr = `${nxm}月${nxd}日`;
 
           if (jstDateStr === targetDate || nxDateStr === targetDate ) {
             seenLinks.add(jobUrl);
@@ -185,6 +185,7 @@ try{
         const isMobileRow = nextRow && nextRow.classList.contains('hide-only-desktop');
         const combinedText = (row.innerText + " " + (isMobileRow ? nextRow.innerText : "")).replace(/\s+/g, ' ');        
         const dateMatch = combinedText.match(/(\d{4})年(\d{1,2})月(\d{1,2})日.*?(\d{1,2}):(\d{2})/);
+        if 
         extracted.push({ oriData: dateMatch });
       });
       return extracted;
