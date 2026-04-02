@@ -25,6 +25,8 @@ try{
   ///const searchDate = "3月19日";
   ///const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
   const MODE = hour < 12 ? "morning" : "workcheck";
+  let nxDateStr = `${nxm}月${nxd}日`;
+
   
   const downloadPath = process.cwd();
   fs.readdirSync(downloadPath).forEach(f => {
@@ -128,7 +130,7 @@ try{
           const nxdy = new Date(y,m-1,d+1);
           const nxm = String(nxdy.getMonth() + 1);
           const nxd = String(nxdy.getDate());
-          const nxDateStr = `${nxm}月${nxd}日`;
+          nxDateStr = `${nxm}月${nxd}日`;
 
           if (jstDateStr === targetDate || nxDateStr === targetDate ) {
             seenLinks.add(jobUrl);
