@@ -25,8 +25,6 @@ try{
   ///const searchDate = "3月19日";
   ///const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
   const MODE = hour < 12 ? "morning" : "workcheck";
-  let nxDateStr;
-
   
   const downloadPath = process.cwd();
   fs.readdirSync(downloadPath).forEach(f => {
@@ -107,6 +105,8 @@ try{
     await page.waitForSelector('table', { timeout: 10000 });
     await new Promise(r => setTimeout(r, 5000));
     // --- ⓶ データの抽出
+    let nxDateStr = date;
+ console.log('nxDateStr',nxDateStr)
     const results = await page.evaluate((targetDate) => {
       const extracted = [];
       const seenLinks = new Set();
@@ -170,6 +170,28 @@ try{
       totalVacancy += job.vacancy;
     });
    console.log(jobStatus);
+/////
+    const results = await page.evaluate((targetDate) => {
+      const extracted = [];
+      const seenLinks = new Set();
+      const jobLinks = document.querySelectorAll('a[href*="/offerings/"]');
+      jobLinks.forEach(link => {
+        const jobUrl = link.href;
+        if (seenLinks.has(jobUrl)) return;
+        const row = link.closest('tr');
+        if (!row) return;
+        
+        const nextRow = row.nextElementSibling;
+        const isMobileRow = nextRow && nextRow.classList.contains('hide-only-desktop');
+        const combinedText = (row.innerText + " " + (isMobileRow ? nextRow.innerText : "")).replace(/\s+/g, ' ');        
+        const dateMatch = combinedText.match(/(\d{4})年(\d{1,2})月(\d{1,2})日.*?(\d{1,2}):(\d{2})/);
+        extracted.push({ oriData: dateMatch });
+      });
+      return extracted;
+    }, searchDate);
+  console.log(results);
+   
+/////   
    //ＣＳＶダウンロード・ワーカー詳細取得
     for (const job of results) {
      console.log(`詳細確認開始: ${job.time_full}`);
