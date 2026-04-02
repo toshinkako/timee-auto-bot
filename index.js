@@ -192,12 +192,12 @@ console.log('nxDateStr=',nxDateStr)
         const jstDateStr = `${m}月${d}日`;
         const jstTimeStr = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
          
-       if (jstTimeStr===targetDate || jstTimeStr===nextDate){
+       if (jstDateStr===targetDate || jstDateStr===nextDate){
         extracted.push({ oriData: dateMatch ,nextDate:nextDate});
        }
       });
       return extracted;
-    }, (searchDate,nxDateStr));
+    }, searchDate, nxDateStr);
   console.log(resultsEX);
    }catch(e){console.log(e)}
 /////   
