@@ -187,11 +187,13 @@ console.log('nxDateStr=',nxDateStr)
         const combinedText = (row.innerText + " " + (isMobileRow ? nextRow.innerText : "")).replace(/\s+/g, ' ');        
         const dateMatch = combinedText.match(/(\d{4})年(\d{1,2})月(\d{1,2})日.*?(\d{1,2}):(\d{2})/);
 
-
-console.log('nxDateStr2=',nextDate)
-
-       if (dateMatch.indexOf(targetDate)!==-1 || dateMatch.indexOf(nextDate)!==-1){
-        extracted.push({ oriData: dateMatch });
+        if (!dateMatch) return false;
+        const [_, y, m, d, hh, mm] = dateMatch.map(Number);
+        const jstDateStr = `${m}月${d}日`;
+        const jstTimeStr = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+         
+       if (jstTimeStr===targetDate || jstTimeStr===nextDate){
+        extracted.push({ oriData: dateMatch ,nextDate:nextDate});
        }
       });
       return extracted;
