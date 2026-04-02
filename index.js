@@ -76,7 +76,7 @@ try{
 
  // 店舗ループ
   let sendMessage = '【Timee勤務確認】';
-  let anyStoreSent = false;
+  let anyStoreSent = true;
   let anyVacancies = false;
   let isWorking = false;
   for(const CLIENT_ID of CLIENT_IDS){
@@ -256,6 +256,7 @@ try{
     await page.goBack({ waitUntil: "networkidle2" });
   }    //ループ終了
 
+  if (hour = 6) anyStoreSent = true;
  ///anyStoreSent = true
   if (anyStoreSent) {
     await transporter.sendMail({
