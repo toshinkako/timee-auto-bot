@@ -171,11 +171,10 @@ try{
       return extracted;
      }, searchDate, nxDateStr);
 
-   console.log('results',results)
    
     let jobStatus = `${searchDate}募集: ${results.length}件 || ${nxDateStr}`;
     results.forEach(job => {
-      jobStatus += '\n'+ `　時間: ${job.time_full}　${job.applied} | ${job.vacancy}`;
+      jobStatus += '\n'+ `　${job.targetDate}　${job.time_full}　${job.applied} | ${job.vacancy}`;
       totalVacancy += job.vacancy;
     });
    console.log(jobStatus);
@@ -183,6 +182,10 @@ try{
    //ＣＳＶダウンロード・ワーカー詳細取得
     for (const job of results) {
      console.log(`詳細確認開始: ${job.targetDate} ${job.time_full}`);
+     if (hour !== 16 && job.targetDate == nxDateStr){
+       console.log( 'pass', nxDateStr)
+       continue;
+     };
       await page.goto(job.url, { waitUntil: "networkidle2" });
       await new Promise(r => setTimeout(r, 3000));
       const downloadPath = require('path').resolve('./downloads');
