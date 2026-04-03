@@ -256,6 +256,9 @@ try{
          totalHours += parseFloat(h);
          storeSummaryMap[h] = (storeSummaryMap[h] || 0) + 1;
        });
+   console.log(job.targetDate,anyVacancies,isWorking)
+
+     
     }; ///for (const job of results).end
 
 
@@ -268,7 +271,7 @@ try{
       await writeSheet(date,time,store,totalStaff,staffNamesStr,totalVacancy,totalHours,summaryStr);
       console.log(`${store} シート記録`);
     };
-console.log(job.targetDate,anyVacancies,isWorking)
+
 
    
    // 店舗ごとのメッセージ組み立て
@@ -321,8 +324,6 @@ console.log(job.targetDate,anyVacancies,isWorking)
 
 
 /* --- 関数群 --- */
-
-
 
 function calcIndividualWork(s) {
   if (!s.start || !s.end) return "0.00";
