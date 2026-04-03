@@ -13,11 +13,11 @@ if (fs.existsSync(cachePath)) {
 };
 if (hour<12 && lastStatus.vacant===false) {
   console.log("残り枠なし。スキップ。");
-  // return; またはフラグを立てる
+  return; またはフラグを立てる
 };
 if (hour>12 && hour!==16 && lastStatus.working===false) {
   console.log("退勤済み。スキップ。");
-  // return; またはフラグを立てる
+  return; またはフラグを立てる
 }
 const path = require('path');
 const XLSX = require("xlsx");
@@ -37,15 +37,15 @@ try{
   const dd = String(now.getDate());
   const date = `${yyyy}/${mm}/${dd}`;
   const time = now.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
-  ///const searchDate = `${mm}月${dd}日`;
+  const searchDate = `${mm}月${dd}日`;
   const MODE = hour < 12 ? "morning" : "workcheck";
   const nxDate = now;
   nxDate.setDate(now.getDate() + 9);
    const nxm = String(nxDate.getMonth() + 1);
    const nxd = String(nxDate.getDate());
-  ///const nxDateStr = `${nxm}月${nxd}日`;
-  const searchDate = "3月19日";
-  const nxDateStr =  "3月28日";;
+  const nxDateStr = `${nxm}月${nxd}日`;
+  ///const searchDate = "3月19日";
+  ///const nxDateStr =  "3月28日";;
    
   const downloadPath = process.cwd();
   fs.readdirSync(downloadPath).forEach(f => {
