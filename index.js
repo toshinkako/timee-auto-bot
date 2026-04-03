@@ -102,6 +102,8 @@ try{
   for(const CLIENT_ID of CLIENT_IDS){
    //リスト表示・データ抽出
     const store = STORE_NAMES[CLIENT_ID];
+    let isWorking = false;
+    let anyVacancies = false;
     let totalStaff = [0, 0];
     let totalHours = 0;
     let staffNames = [];
@@ -183,10 +185,10 @@ try{
     });
    console.log(jobStatus);
    
-   //ＣＳＶダウンロード・ワーカー詳細取得
+   //jobループ
     for (const job of results) {
      console.log(`詳細確認開始: ${job.targetDate} ${job.time_full}`);
-     if (hour !== 16 && job.targetDate == nxDateStr) continue;
+     if (hour !== 16 && job.targetDate===nxDateStr) continue;
       //CSVダウンロード 
        await page.goto(job.url, { waitUntil: "networkidle2" });
        await new Promise(r => setTimeout(r, 3000));
@@ -240,28 +242,28 @@ try{
        const staffCount = staff.length;
        if (job.targetDate===nxDateStr) {
          totalStaff[1] += staffCount;
-         staffNames.push(...staff.map(s => s.name));
+         const names = staff.map(s => s.name).join(", ");
+         staffNames.push(...names);
          if (job.startH < 12) amTotal += job.applied;
          if (job.endH > 13) pmTotal += job.applied;
-         shiftLines.push(`　${job.targetDate} ${job.time_full}　${job.applied}（${job.vacancy}）`);
+         shiftLines.push(`　${job.time_full}　${job.applied}（${job.vacancy}）[${names}]`);
        };
       //勤務結果
-       isWorking = staff.some(s => s.end === null || s.end === '');
-       if (isWorking) {
-         console.log(`${store} 勤務中あり`);
-         if (hour !== 16) continue;
-       };
-       staff.forEach(s => {
-         const h = calcIndividualWork(s);
-         totalHours += parseFloat(h);
-         storeSummaryMap[h] = (storeSummaryMap[h] || 0) + 1;
-       });
-     
-    }; ///for (const job of results).end
+       if (job.targetDate===searchDate) {
+         isWorking = staff.some(s => s.end === null || s.end === '');
+         if (isWorking) {
+           console.log(`${store} 勤務中あり`);
+           if (hour !== 16) continue;
+         };
+         staff.forEach(s => {
+           const h = calcIndividualWork(s);
+           totalHours += parseFloat(h);
+           storeSummaryMap[h] = (storeSummaryMap[h] || 0) + 1;
+         });
+       }
+    }; // jobループ終了
 
-
-
-     if (totalVacancy >0) anyVacancies = true;
+    if (totalVacancy >0) anyVacancies = true;
     if (!isWorking && results.length >0) {
       const staffNamesStr = [...new Set(staffNames)].join(", ");
       const summaryStr = Object.entries(storeSummaryMap).map(([h, c]) => `${h} x ${c}`).join(", ");
