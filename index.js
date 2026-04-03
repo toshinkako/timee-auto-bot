@@ -21,16 +21,14 @@ try{
   const dd = String(now.getDate());
   const date = `${yyyy}/${mm}/${dd}`;
   const time = now.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
-  const searchDate = `${mm}月${dd}日`;
-  ///const searchDate = "3月19日";
-  ///const dateParam = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+  ///const searchDate = `${mm}月${dd}日`;
+  const searchDate = "3月19日";
   const MODE = hour < 12 ? "morning" : "workcheck";
   const nxDate = now;
-  nxDate.setDate(now.getDate() + 1);
-          const nxm = String(nxDate.getMonth() + 1);
-          const nxd = String(nxDate.getDate());
+  nxDate.setDate(now.getDate() + 9);
+   const nxm = String(nxDate.getMonth() + 1);
+   const nxd = String(nxDate.getDate());
   const nxDateStr = `${nxm}月${nxd}日`;
-console.log('nxDateStr=',nxDateStr)
    
   const downloadPath = process.cwd();
   fs.readdirSync(downloadPath).forEach(f => {
@@ -82,7 +80,7 @@ console.log('nxDateStr=',nxDateStr)
 
  // 店舗ループ
   let sendMessage = '【Timee勤務確認】';
-  let anyStoreSent = true;
+  let anyStoreSent = false;
   let anyVacancies = false;
   let isWorking = false;
   for(const CLIENT_ID of CLIENT_IDS){
@@ -96,8 +94,6 @@ console.log('nxDateStr=',nxDateStr)
     let amTotal = 0, pmTotal = 0, shiftLines = [];
     
     const offeringsUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings`;
-    /// https://app-new.taimee.co.jp/clients/325161/offerings ;
-   /// const offeringsUrl = `https://app-new.taimee.co.jp/clients/${CLIENT_ID}/offerings?date_from=${dateParam}&date_to=${dateParam}`;
     console.log(`\n--- ${store} 処理開始 ---`);
     await page.goto(offeringsUrl, { waitUntil: "networkidle2" });
     await new Promise(r => setTimeout(r, 5000));
@@ -111,7 +107,38 @@ console.log('nxDateStr=',nxDateStr)
     await page.waitForSelector('table', { timeout: 10000 });
     await new Promise(r => setTimeout(r, 5000));
     // --- ⓶ データの抽出
-    const results = await page.evaluate((targetDate) => {
+    const results = await page.evaluate((todayStr, tomorrowStr) => {
+      // --- ⓵ 内部関数：1行分のテキストからデータを抽出する ---
+      const parseRowData = (combinedText, row, jobUrl) => {
+        const dateMatch = combinedText.match(/(\d{4})年(\d{1,2})月(\d{1,2})日.*?(\d{1,2}):(\d{2})/);
+        if (!dateMatch) return null;
+        const [_, y, m, d, hh, mm] = dateMatch.map(Number);
+        const jstDateStr = `${m}月${d}日`;
+        const jstTimeStr = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+        if (jstDateStr === todayStr || jstDateStr === tomorrowStr) {
+          const timeRangeMatch = combinedText.match(/(\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})/);
+          let jstEndH = 0;
+          let jstTimeFull = jstTimeStr + "～";
+          if (timeRangeMatch) {
+            const startTime = timeRangeMatch[1].padStart(5, '0');
+            const endTime = timeRangeMatch[2].padStart(5, '0');
+            jstTimeFull = `${startTime}～${endTime}`;
+            jstEndH = parseInt(endTime.split(':')[0], 10);
+          };
+          const workerElem = row.querySelector('td.show-only-desktop:nth-child(5)') || row;
+          const workerText = workerElem.innerText.match(/(\d+)\s*\/\s*(\d+)/);
+          let applied = workerText ? parseInt(workerText[1]) : 0;
+          let capacity = workerText ? parseInt(workerText[2]) : 0;
+          return {
+            targetDate: jstDateStr,
+            time_full: jstTimeFull,
+            applied: applied, capacity: capacity, vacancy: capacity - applied,
+            startH: hh, endH: jstEndH, url: jobUrl
+          };
+        }
+        return null;
+      };
+      // --- ⓶ メイン処理 ---
       const extracted = [];
       const seenLinks = new Set();
       const jobLinks = document.querySelectorAll('a[href*="/offerings/"]');
@@ -120,87 +147,27 @@ console.log('nxDateStr=',nxDateStr)
         if (seenLinks.has(jobUrl)) return;
         const row = link.closest('tr');
         if (!row) return;
-        
         const nextRow = row.nextElementSibling;
         const isMobileRow = nextRow && nextRow.classList.contains('hide-only-desktop');
         const combinedText = (row.innerText + " " + (isMobileRow ? nextRow.innerText : "")).replace(/\s+/g, ' ');
-        
-        const dateMatch = combinedText.match(/(\d{4})年(\d{1,2})月(\d{1,2})日.*?(\d{1,2}):(\d{2})/);
-        if (dateMatch) {
-          const [_, y, m, d, hh, mm] = dateMatch.map(Number);
-          const jstDateStr = `${m}月${d}日`;
-          const jstTimeStr = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
-          
-
-          if (jstDateStr === targetDate ) {
-            seenLinks.add(jobUrl);
-           //時間帯get
-            const timeRangeMatch = combinedText.match(/(\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})/);
-            let jstEndH = 0;
-            let jstTimeFull = jstTimeStr + "～";
-            if (timeRangeMatch) {
-              const startTime = timeRangeMatch[1].padStart(5, '0');
-              const endTime = timeRangeMatch[2].padStart(5, '0');
-              jstTimeFull = `${startTime}～${endTime}`;
-              jstEndH = parseInt(endTime.split(':')[0], 10);
-            }
-           //募集状況get
-            const workerElem = row.querySelector('td.show-only-desktop:nth-child(5)') || row;
-            const workerText = workerElem.innerText.match(/(\d+)\s*\/\s*(\d+)/);
-            let applied = workerText ? parseInt(workerText[1]) : 0;
-            let capacity = workerText ? parseInt(workerText[2]) : 0;
-            extracted.push({
-              time_full: jstTimeFull,
-              applied: applied,
-              capacity: capacity,
-              vacancy: capacity - applied,
-              startH: parseInt(hh),
-              endH: jstEndH,
-              url: jobUrl
-            });
-          }
-        }
+        const data = parseRowData(combinedText, row, jobUrl);
+        if (data) {
+          seenLinks.add(jobUrl);
+          extracted.push(data);
+        };
       });
       return extracted;
-    }, searchDate);
-    
+     }, searchDate, nxDateStr);
+
+   console.log('results',results)
+   
     let jobStatus = `${searchDate}募集: ${results.length}件 || ${nxDateStr}`;
     results.forEach(job => {
       jobStatus += '\n'+ `　時間: ${job.time_full}　${job.applied} | ${job.vacancy}`;
       totalVacancy += job.vacancy;
     });
    console.log(jobStatus);
-/////
-   try{
-     const resultsEX = await page.evaluate((targetDate,nextDate) => {
-      const extracted = [];
-      const seenLinks = new Set();
-      const jobLinks = document.querySelectorAll('a[href*="/offerings/"]');
-      jobLinks.forEach(link => {
-        const jobUrl = link.href;
-        if (seenLinks.has(jobUrl)) return;
-        const row = link.closest('tr');
-        if (!row) return;
-        
-        const nextRow = row.nextElementSibling;
-        const isMobileRow = nextRow && nextRow.classList.contains('hide-only-desktop');
-        const combinedText = (row.innerText + " " + (isMobileRow ? nextRow.innerText : "")).replace(/\s+/g, ' ');        
-        const dateMatch = combinedText.match(/(\d{4})年(\d{1,2})月(\d{1,2})日.*?(\d{1,2}):(\d{2})/);
 
-        if (!dateMatch) return false;
-        const [_, y, m, d, hh, mm] = dateMatch.map(Number);
-        const jstDateStr = `${m}月${d}日`;
-        const jstTimeStr = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
-         
-       if (jstDateStr===targetDate || jstDateStr===nextDate){
-        extracted.push({ oriData: dateMatch ,nextDate:nextDate});
-       }
-      });
-      return extracted;
-    }, searchDate, nxDateStr);
-  console.log(resultsEX);
-   }catch(e){console.log(e)}
-/////   
    //ＣＳＶダウンロード・ワーカー詳細取得
     for (const job of results) {
      console.log(`詳細確認開始: ${job.time_full}`);
