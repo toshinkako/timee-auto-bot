@@ -44,6 +44,8 @@ try{
    const nxm = String(nxDate.getMonth() + 1);
    const nxd = String(nxDate.getDate());
   const nxDateStr = `${nxm}月${nxd}日`;
+  const nxdate = `${yyyy}/${nxm}/${nxd}`;
+
   ///const searchDate = "3月19日";
   ///const nxDateStr =  "3月28日";;
    
@@ -95,11 +97,11 @@ try{
   ]);
  console.log("ログイン成功");
   
- // 店舗ループ
   let sendMessage = '【Timee勤務確認】';
   let anyStoreSent = false;
   let isWorking = false;
   let anyVacancies = false;
+ // 店舗ループ
   for(const CLIENT_ID of CLIENT_IDS){
    if (hour===6 && anyVacancies) continue;
    //リスト表示・データ抽出
@@ -264,11 +266,12 @@ try{
     }; // jobループ終了
 
     if (totalVacancy >0) anyVacancies = true;
-    if (!isWorking && results.length >0) {
+    if (!isWorking && results.length >0 ) {
       const staffNamesStr = [...new Set(staffNames)].join(", ");
       const summaryStr = Object.entries(storeSummaryMap).map(([h, c]) => `${h} x ${c}`).join(", ");
       totalHours = totalHours.toFixed(2);
-      await writeSheet(date,time,store,totalStaff,staffNamesStr,totalVacancy,totalHours,summaryStr);
+      await writeSheet(date,time,store,totalStaff[0],'','',totalHours,summaryStr);
+      await writeSheet(nxdate,time,store,totalStaff[1],staffNamesStr,totalVacancy,'','');
       console.log(`${store} シート記録`);
     };
 
