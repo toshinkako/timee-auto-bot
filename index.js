@@ -270,7 +270,8 @@ try{
       const staffNamesStr = [...new Set(staffNames)].join(", ");
       const summaryStr = Object.entries(storeSummaryMap).map(([h, c]) => `${h} x ${c}`).join(", ");
       totalHours = totalHours.toFixed(2);
-      await writeSheet(date,time,store,totalStaff[0],'','',totalHours,summaryStr);
+console.log(date,time,store,totalStaff[0],totalHours,summaryStr,'/',nxdate,totalStaff[1],staffNamesStr,totalVacancy)
+     await writeSheet(date,time,store,totalStaff[0],'','',totalHours,summaryStr);
       await writeSheet(nxdate,time,store,totalStaff[1],staffNamesStr,totalVacancy,'','');
       console.log(`${store} シート記録`);
     };
@@ -308,7 +309,7 @@ try{
   try{
       const statusData = { hasVacancies: anyVacancies };
       fs.writeFileSync('last_status.json', JSON.stringify(statusData));
-      onsole.log("Vacancyキャッシュ保存完了");
+      console.log("Vacancyキャッシュ保存完了");
   }catch(e){ console.log('anyVacancies', e) };
   // --- 今回の結果を保存する ---
   const currentStatus = {
