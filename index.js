@@ -40,7 +40,7 @@ try{
   const searchDate = `${mm}月${dd}日`;
   const MODE = hour < 12 ? "morning" : "workcheck";
   const nxDate = now;
-  nxDate.setDate(now.getDate() + 9);
+  nxDate.setDate(now.getDate() + 1);
    const nxm = String(nxDate.getMonth() + 1);
    const nxd = String(nxDate.getDate());
   const nxDateStr = `${nxm}月${nxd}日`;
@@ -243,7 +243,7 @@ try{
          staffNames.push(...staff.map(s => s.name));
          if (job.startH < 12) amTotal += job.applied;
          if (job.endH > 13) pmTotal += job.applied;
-         shiftLines.push(`　${job.targetDate} ${job.time_full}　${job.applied}（${job.vacancy}）　${staffNames}`);
+         shiftLines.push(`　${job.targetDate} ${job.time_full}　${job.applied}（${job.vacancy}）`);
        };
       //勤務結果
        isWorking = staff.some(s => s.end === null || s.end === '');
@@ -282,7 +282,7 @@ try{
   }    //ループ終了
 
  /// if (hour===16) anyStoreSent = true;
- anyStoreSent = false
+ ///anyStoreSent = false
   if (anyStoreSent) {
     await transporter.sendMail({
       from: `"Timee自動報告" <toshin.kakou@gmail.com>`,
@@ -307,7 +307,7 @@ try{
   }catch(e){ console.log('anyVacancies', e) };
   // --- 今回の結果を保存する ---
   const currentStatus = {
-    vacant: currentVacancy,
+    vacant: anyVacancies,
     working: isWorking,
     updatedAt: new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })
   };
