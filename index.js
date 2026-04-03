@@ -38,7 +38,7 @@ try{
   const date = `${yyyy}/${mm}/${dd}`;
   const time = now.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
   const searchDate = `${mm}月${dd}日`;
-  const MODE = hour < 12 ? "morning" : "workcheck";
+  ///const MODE = hour < 12 ? "morning" : "workcheck";
   const nxDate = now;
   nxDate.setDate(now.getDate() + 1);
    const nxm = String(nxDate.getMonth() + 1);
@@ -98,12 +98,12 @@ try{
  // 店舗ループ
   let sendMessage = '【Timee勤務確認】';
   let anyStoreSent = false;
-  
+  let isWorking = false;
+  let anyVacancies = false;
   for(const CLIENT_ID of CLIENT_IDS){
+   if (hour===6 && anyVacancies) continue;
    //リスト表示・データ抽出
     const store = STORE_NAMES[CLIENT_ID];
-    let isWorking = false;
-    let anyVacancies = false;
     let totalStaff = [0, 0];
     let totalHours = 0;
     let staffNames = [];
@@ -273,7 +273,6 @@ try{
     };
 
 
-   console.log(anyVacancies,isWorking)
    
    // 店舗ごとのメッセージ組み立て
     const storeReport = `\n--- ${store} 報告 ---\n${searchDate}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
@@ -282,6 +281,8 @@ try{
 
     await page.goBack({ waitUntil: "networkidle2" });
   }    //ループ終了
+
+ console.log(anyVacancies,isWorking)
 
  /// if (hour===16) anyStoreSent = true;
  ///anyStoreSent = false
@@ -302,10 +303,9 @@ try{
   };
   
   try{
-    if (anyVacancies){
       const statusData = { hasVacancies: anyVacancies };
       fs.writeFileSync('last_status.json', JSON.stringify(statusData));
-    }
+      onsole.log("Vacancyキャッシュ保存完了");
   }catch(e){ console.log('anyVacancies', e) };
   // --- 今回の結果を保存する ---
   const currentStatus = {
