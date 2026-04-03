@@ -1,6 +1,18 @@
 process.env.TZ = "Asia/Tokyo";
 const puppeteer = require("puppeteer-core");
 const fs = require("fs");
+const cachePath = './last_status.json';
+let lastStatus = { anyVacancies: null, isWorking: null };
+if (fs.existsSync(cachePath)) {
+ try{
+  lastStatus = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+  console.log(`前回の状態( ${lastStatus.updatedAt} )`);
+ } catch(e) {};
+};
+if (lastStatus.isWorking===false) {
+  console.log("前回実行時に全員退勤済みのため、実績確認をスキップします。");
+  // return; またはフラグを立てる
+}
 const path = require('path');
 const XLSX = require("xlsx");
 const { google } = require("googleapis");
@@ -82,8 +94,7 @@ try{
  // 店舗ループ
   let sendMessage = '【Timee勤務確認】';
   let anyStoreSent = false;
-  let anyVacancies = false;
-  let isWorking = false;
+  
   for(const CLIENT_ID of CLIENT_IDS){
    //リスト表示・データ抽出
     const store = STORE_NAMES[CLIENT_ID];
@@ -171,7 +182,7 @@ try{
 
    //ＣＳＶダウンロード・ワーカー詳細取得
     for (const job of results) {
-     console.log(`詳細確認開始: ${job.time_full}`);
+     console.log(`詳細確認開始: ${job.targetDate} ${job.time_full}`);
       await page.goto(job.url, { waitUntil: "networkidle2" });
       await new Promise(r => setTimeout(r, 3000));
       const downloadPath = require('path').resolve('./downloads');
@@ -285,6 +296,13 @@ try{
       fs.writeFileSync('last_status.json', JSON.stringify(statusData));
     }
   }catch(e){ console.log('anyVacancies', e) };
+  // --- 今回の結果を保存する ---
+  const currentStatus = {
+    anyVacancies: currentVacancy,
+    isWorking: isWorking,
+    updatedAt: new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })
+  };
+  fs.writeFileSync(cachePath, JSON.stringify(currentStatus));
   
   await browser.close();
 } catch (e) { console.error("エラー発生:", e);
