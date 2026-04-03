@@ -17,7 +17,7 @@ if (hour<12 && lastStatus.vacant===false) {
 };
 if (hour>12 && hour!==16 && lastStatus.working===false) {
   console.log("退勤済み。スキップ。");
-  return; またはフラグを立てる
+ // return; またはフラグを立てる
 }
 const path = require('path');
 const XLSX = require("xlsx");
