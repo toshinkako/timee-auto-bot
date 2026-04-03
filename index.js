@@ -1,16 +1,22 @@
 process.env.TZ = "Asia/Tokyo";
+const now = new Date();
+const hour = now.getHours();
 const puppeteer = require("puppeteer-core");
 const fs = require("fs");
 const cachePath = './last_status.json';
-let lastStatus = { anyVacancies: null, isWorking: null };
+let lastStatus = { vacant: null, working: null };
 if (fs.existsSync(cachePath)) {
  try{
   lastStatus = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
   console.log(`前回の状態( ${lastStatus.updatedAt} )`);
  } catch(e) {};
 };
-if (lastStatus.isWorking===false) {
-  console.log("前回実行時に全員退勤済みのため、実績確認をスキップします。");
+if (hour<12 && lastStatus.vacant===false) {
+  console.log("残り枠なし。スキップ。");
+  // return; またはフラグを立てる
+};
+if (hour>12 && hour!==16 && lastStatus.working===false) {
+  console.log("退勤済み。スキップ。");
   // return; またはフラグを立てる
 }
 const path = require('path');
@@ -26,8 +32,6 @@ let browser;
 (async () => {
 try{
  //準備
-  const now = new Date();
-  const hour = now.getHours();
   const yyyy = now.getFullYear();
   const mm = String(now.getMonth() + 1);
   const dd = String(now.getDate());
@@ -90,7 +94,7 @@ try{
     page.click('button[type="submit"]')
   ]);
  console.log("ログイン成功");
-
+  
  // 店舗ループ
   let sendMessage = '【Timee勤務確認】';
   let anyStoreSent = false;
@@ -98,7 +102,7 @@ try{
   for(const CLIENT_ID of CLIENT_IDS){
    //リスト表示・データ抽出
     const store = STORE_NAMES[CLIENT_ID];
-    let totalStaff = 0;
+    let totalStaff = [0, 0];
     let totalHours = 0;
     let staffNames = [];
     let storeSummaryMap = {};
@@ -178,87 +182,85 @@ try{
       totalVacancy += job.vacancy;
     });
    console.log(jobStatus);
-
+   
    //ＣＳＶダウンロード・ワーカー詳細取得
     for (const job of results) {
      console.log(`詳細確認開始: ${job.targetDate} ${job.time_full}`);
-     if (hour !== 16 && job.targetDate == nxDateStr){
-       console.log( 'pass', nxDateStr)
-       continue;
-     };
-      await page.goto(job.url, { waitUntil: "networkidle2" });
-      await new Promise(r => setTimeout(r, 3000));
-      const downloadPath = require('path').resolve('./downloads');
-      if (!fs.existsSync(downloadPath)) fs.mkdirSync(downloadPath);
-      await page._client().send('Page.setDownloadBehavior', {
-        behavior: 'allow',
-        downloadPath: downloadPath,
-      });
-      let csvBuffer = null;
-      const listener = async (res) => {
-        const url = res.url();
-        if (!url.includes('users.csv')) return;
-        if (res.request().method() !== 'GET') return;
-        try{
+     if (hour !== 16 && job.targetDate == nxDateStr) continue;
+      //CSVダウンロード 
+       await page.goto(job.url, { waitUntil: "networkidle2" });
+       await new Promise(r => setTimeout(r, 3000));
+       const downloadPath = require('path').resolve('./downloads');
+       if (!fs.existsSync(downloadPath)) fs.mkdirSync(downloadPath);
+       await page._client().send('Page.setDownloadBehavior', {
+         behavior: 'allow',
+         downloadPath: downloadPath,
+       });
+       let csvBuffer = null;
+       const listener = async (res) => {
+         const url = res.url();
+         if (!url.includes('users.csv')) return;
+         if (res.request().method() !== 'GET') return;
+         try{
           const buffer = await res.buffer();
           if (buffer.length < 100) return;
           if (buffer && buffer.length > 100) {
             csvBuffer = buffer;
           }
-        }catch(e){ console.log("CSV取得失敗:", e.message); }
-      };
-      page.on('response', listener);
-      const clicked = await page.evaluate(() => {
-        const btn = document.querySelector('button[data-dd-action-name*="CSVダウンロード"]');
-        if(btn){
-          btn.scrollIntoView();
-          btn.click();
-          return true;
-        }
-        return false;
-      });
-      for(let i=0;i<10;i++){
-        if(csvBuffer) break;
-        await new Promise(r => setTimeout(r,1000));
-      }
-      page.off('response', listener);
-      if(!csvBuffer){ throw new Error("CSV取得失敗"); }
-      const tempCsvName = `users_${CLIENT_ID}_${Date.now()}.csv`;
-      const tempCsvPath = path.join(downloadPath, tempCsvName);
-      fs.writeFileSync(tempCsvPath, csvBuffer);
-     console.log("CSV保存完了");
-      const csv = csvBuffer.toString("utf-8");
-      const lines = csv.split(/\r?\n/).filter(line => line.trim() !== "");
-      const data = lines.slice(1).map(l => l.split(","));
-      const staff = data.map(row => {
-        return { name: row[1], start: row[10], end: row[11] };
-      }).filter(Boolean);
-      if (fs.existsSync(tempCsvPath)) fs.unlinkSync(tempCsvPath);
-     //CSV解析
-      const staffCount = staff.length;
-      totalStaff += staffCount;
-      staffNames.push(...staff.map(s => s.name));
-     //募集確認（午前＋16時）
-      if (hour<12 || hour==16) {
-        if (totalVacancy >0 && hour<12) anyVacancies = true;
-        if (job.startH < 12) amTotal += job.applied;
-        if (job.endH > 13) pmTotal += job.applied;
-        shiftLines.push(`　${job.time_full}　　${job.applied}　（${job.vacancy}）　　${staffNames}`);
-      };
-     //勤務結果
-      console.log('勤務結果 chk')
-      isWorking = staff.some(s => s.end === null || s.end === '');
-      if (!isWorking && hour >12) {
-        console.log(`${store} 勤務中あり`);
-        if (hour !== 16) return;
-        staff.forEach(s => {
-          const h = calcIndividualWork(s);
-          totalHours += parseFloat(h);
-          storeSummaryMap[h] = (storeSummaryMap[h] || 0) + 1;
-        });
-      };
+         }catch(e){ console.log("CSV取得失敗:", e.message); }
+       };
+       page.on('response', listener);
+       const clicked = await page.evaluate(() => {
+         const btn = document.querySelector('button[data-dd-action-name*="CSVダウンロード"]');
+         if(btn){
+           btn.scrollIntoView();
+           btn.click();
+           return true;
+         }
+         return false;
+       });
+       for(let i=0;i<10;i++){
+         if(csvBuffer) break;
+         await new Promise(r => setTimeout(r,1000));
+       }
+       page.off('response', listener);
+       if(!csvBuffer){ throw new Error("CSV取得失敗"); }
+       const tempCsvName = `users_${CLIENT_ID}_${Date.now()}.csv`;
+       const tempCsvPath = path.join(downloadPath, tempCsvName);
+       fs.writeFileSync(tempCsvPath, csvBuffer);
+       console.log("CSV保存完了");
+       const csv = csvBuffer.toString("utf-8");
+       const lines = csv.split(/\r?\n/).filter(line => line.trim() !== "");
+       const data = lines.slice(1).map(l => l.split(","));
+       const staff = data.map(row => {
+         return { name: row[1], start: row[10], end: row[11] };
+       }).filter(Boolean);
+       if (fs.existsSync(tempCsvPath)) fs.unlinkSync(tempCsvPath);
+      //応募状況
+       const staffCount = staff.length;
+       if (job.targetDate===nxDateStr) {
+         totalStaff[1] += staffCount;
+         staffNames.push(...staff.map(s => s.name));
+         if (job.startH < 12) amTotal += job.applied;
+         if (job.endH > 13) pmTotal += job.applied;
+         shiftLines.push(`　${job.targetDate} ${job.time_full}　${job.applied}（${job.vacancy}）　${staffNames}`);
+       };
+      //勤務結果
+       isWorking = staff.some(s => s.end === null || s.end === '');
+       if (isWorking) {
+         console.log(`${store} 勤務中あり`);
+         if (hour !== 16) continue;
+       };
+       staff.forEach(s => {
+         const h = calcIndividualWork(s);
+         totalHours += parseFloat(h);
+         storeSummaryMap[h] = (storeSummaryMap[h] || 0) + 1;
+       });
     }; ///for (const job of results).end
-    
+
+
+
+     if (totalVacancy >0) anyVacancies = true;
     if (!isWorking && results.length >0) {
       const staffNamesStr = [...new Set(staffNames)].join(", ");
       const summaryStr = Object.entries(storeSummaryMap).map(([h, c]) => `${h} x ${c}`).join(", ");
@@ -266,7 +268,9 @@ try{
       await writeSheet(date,time,store,totalStaff,staffNamesStr,totalVacancy,totalHours,summaryStr);
       console.log(`${store} シート記録`);
     };
+console.log(job.targetDate,anyVacancies,isWorking)
 
+   
    // 店舗ごとのメッセージ組み立て
     const storeReport = `\n--- ${store} 報告 ---\n${searchDate}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
     sendMessage += storeReport;
@@ -276,7 +280,7 @@ try{
   }    //ループ終了
 
  /// if (hour===16) anyStoreSent = true;
- ///anyStoreSent = true
+ anyStoreSent = false
   if (anyStoreSent) {
     await transporter.sendMail({
       from: `"Timee自動報告" <toshin.kakou@gmail.com>`,
@@ -301,8 +305,8 @@ try{
   }catch(e){ console.log('anyVacancies', e) };
   // --- 今回の結果を保存する ---
   const currentStatus = {
-    anyVacancies: currentVacancy,
-    isWorking: isWorking,
+    vacant: currentVacancy,
+    working: isWorking,
     updatedAt: new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })
   };
   fs.writeFileSync(cachePath, JSON.stringify(currentStatus));
