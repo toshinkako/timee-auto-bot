@@ -180,7 +180,6 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
       return extracted;
     }, searchDate, nxDateStr);
 /////ここから
-try{  
     for (const job of results) {
       if ((job.targetDate===searchDate && hour>12) ||(job.targetDate===nxDateStr && hour!==16)) continue;
       console.log(`詳細確認開始: ${job.targetDate} ${job.time_full}`);
@@ -196,19 +195,18 @@ try{
         const rows = Array.from(matchingDiv.querySelectorAll('table tbody tr'));
         const names = rows.map(row => {
           const nameLink = row.querySelector('a[href*="/users/"] span');
-          return nameLink ? nameLink.innerText.trim().replace(/\s*/,'') : null;
-        }).filter(name => name); // nullを除外
+          return nameLink ? nameLink.innerText : null;
+        }).filter(name => name.trim().replace(/\s*/,'')); // nullを除外
        return { countText, names };
       });
- console.log(`　>> 画面上の確認: ${workerDetails.countText} 名: ${workerDetails.names.join(', ')}`);
       // 取得したデータを変数に格納
-      const hirNames = workerDetails.names;
+      const hitNames = workerDetails.names;
+      staffNames.push(...hitNames);
+      shiftLines.push(`　${job.time_full}　${workerDetails.countText}　[${hitNames.join(', ')}]`);
+ console.log(`　>> 画面上の確認: ${workerDetails.countText} 名: ${workerDetails.names.join(', ')} ${hitNames} ${staffNames} ${shiftLines}`);
     };
-    staffNames.push(...hirNames);
-    shiftLines.push(`　${job.time_full}　${workerDetails.countText}　[${hirNames.join(', ')}]`);
 
 
-}catch(e){console.log(e)}
 /////ここまで
 
  
