@@ -181,10 +181,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
     }, searchDate, nxDateStr);
 /////ここから
     for (const job of results) {
-      if ((job.targetDate===searchDate && hour>12) ||(job.targetDate===nxDateStr && hour!==15)){
-       console.log(`2-TEXT pass: ${job.targetDate}  ${job.time_full}`);
-       continue;
-      }
+      if ((job.targetDate===searchDate && hour>12) ||(job.targetDate===nxDateStr && hour!==15)) continue;
       console.log(`詳細TEXT 確認: ${job.targetDate} ${job.time_full}`);
       await page.goto(job.url, { waitUntil: "networkidle2" });
       const workerDetails = await page.evaluate(() => {
@@ -198,21 +195,19 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
         const rows = Array.from(matchingDiv.querySelectorAll('table tbody tr'));
         const names = rows.map(row => {
           const nameLink = row.querySelector('a[href*="/users/"] span');
-          return nameLink ? nameLink.innerText.replace(/\s*/,'') : null;
+          return nameLink ? nameLink.innerText.trim().split(/[ 　]/)[0] : null;
         }).filter(name => name); // nullを除外
        return { countText, names };
       });
  console.log(`　>> 画面上の確認: ${workerDetails.countText} 名: ${workerDetails.names.join(', ')}`);
-     // 取得したデータを変数に格納
       const hitNames = workerDetails.names;
- console.log('　>> 画面2')
- console.log(`　>> 画面2 ${hitNames}`)
-     staffNames.push(...hitNames);
- console.log('　>> 画面3')
+      staffNames.push(...hitNames);
       shiftLines.push(`　${job.time_full}　${workerDetails.countText}　[${hitNames.join(', ')}]`);
- console.log('　>> 画面4')
+ console.log(`　>> 画面2 ${staffNames} ${shiftLines}`)
+           return {nms:staffNames, shfts:shiftLines}
     };
 
+ console.log(`　>> 画面2 ${workerDetails}`)
 
 /////ここまで
 
