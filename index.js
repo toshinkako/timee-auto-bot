@@ -42,11 +42,11 @@ try{
   nxDate.setDate(now.getDate() + 1);
    const nxm = String(nxDate.getMonth() + 1);
    const nxd = String(nxDate.getDate());
-  const nxDateStr = `${nxm}月${nxd}日`;
-  ///const nxdate = `${yyyy}/${nxm}/${nxd}`;
+  ///const nxDateStr = `${nxm}月${nxd}日`;
 
   const searchDate = "3月19日";
   const nxDateStr =  "3月28日";;
+  const nxdate = `${yyyy}/${nxm}/${nxd}`;
    
   const downloadPath = process.cwd();
   fs.readdirSync(downloadPath).forEach(f => {
