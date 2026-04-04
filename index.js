@@ -206,13 +206,18 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
       });
       const namesStr = workerDetails.names.length > 0 ? workerDetails.names.join('、') : "未応募";
       ///const reportLine = `　${job.targetDate} ${job.time_full} 　${workerDetails.countText}　${namesStr}`;
-      const reportLine = `　${job.sts}　[${namesStr]}`;
+      const reportLine = `　${job.sts}　[${namesStr}]`;
      
       shiftLines.push(reportLine);
       jobStatus.push(reportLine);
+      if (job.startH < 12) amTotal += job.applied;
+      if (job.endH > 13) pmTotal += job.applied;
+
     };
-    let jobStatusMsg = `${nxDateStr}募集: ${jobCount}件`;
-    jobStatus.forEach(p => jobStatusMsg += '\n'+ p);
+    const jobStatusMsg = `\n--- ${store} 報告: ${jobCount}件 ---\n${nxDateStr}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${jobStatus.sort().join('\n')}\n`;
+
+//   let jobStatusMsg = `${nxDateStr}募集: ${jobCount}件`;
+//    jobStatus.forEach(p => jobStatusMsg += '\n'+ p);
     console.log(jobStatusMsg)
 
    /////ここまで
