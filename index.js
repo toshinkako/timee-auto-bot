@@ -210,7 +210,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
 try{
   console.log(msg)
 
- console.log(chk,workerDetail)
+ console.log('chk',workerDetail)
 }catch(e){console.log(e)}
 /////ここまで
 
