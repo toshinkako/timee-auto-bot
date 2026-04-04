@@ -208,7 +208,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
      msg += v2Report;
      console.log(` 詳細２ ${msg}`)
      shiftLines.push(`　${job.time_full}　${workerDetails.countText}　[${hitNames.join(', ')}]`);
-     console.log(` 詳細３ ${shiftLines
+     console.log(` 詳細３ ${shiftLines}`)
     };
 try{
   console.log('msg/',msg)
