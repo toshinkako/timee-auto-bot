@@ -180,6 +180,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
       return extracted;
     }, searchDate, nxDateStr);
 /////ここから
+    let msg = '';
     for (const job of results) {
       if ((job.targetDate===searchDate && hour>12) ||(job.targetDate===nxDateStr && hour!==15)) continue;
       console.log(`詳細TEXT 確認: ${job.targetDate} ${job.time_full}`);
@@ -199,16 +200,18 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
         }).filter(name => name); // nullを除外
        return { countText, names };
       });
- console.log(`　>> 画面上の確認: ${workerDetails.countText} 名: ${workerDetails.names.join(', ')}`);
       const hitNames = workerDetails.names;
       staffNames.push(...hitNames);
+ const v2Report = `　${job.time_full}　${workerDetails.countText}　[${hitNames.join(', ')}]`;
+
+     msg += v2Report;
       shiftLines.push(`　${job.time_full}　${workerDetails.countText}　[${hitNames.join(', ')}]`);
- console.log(`　>> 画面2 ${staffNames} ${shiftLines}`)
-           return {nms:staffNames, shfts:shiftLines}
     };
+try{
+  console.log(msg)
 
- console.log(`　>> 画面2 ${workerDetails}`)
-
+ console.log(chk,workerDetail)
+}catch(e){console.log(e)}
 /////ここまで
 
  
