@@ -182,7 +182,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
 /////ここから
     for (const job of results) {
       if ((job.targetDate===searchDate && hour>12) ||(job.targetDate===nxDateStr && hour!==15)){
-       console.log(`2-TEXT pass: ${job.targetDate}`);
+       console.log(`2-TEXT pass: ${job.targetDate}  ${job.time_full}`);
        continue;
       }
       console.log(`詳細TEXT 確認: ${job.targetDate} ${job.time_full}`);
@@ -199,7 +199,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
         const names = rows.map(row => {
           const nameLink = row.querySelector('a[href*="/users/"] span');
           return nameLink ? nameLink.innerText : null;
-        }).filter(name => name.trim().replace(/\s*/,'')); // nullを除外
+        }).filter(name => name.replace(/\s*/,'')); // nullを除外
        return { countText, names };
       });
  console.log(`　>> 画面上の確認: ${workerDetails.countText} 名: ${workerDetails.names.join(', ')}`);
