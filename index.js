@@ -183,9 +183,10 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
    /////ここから
     let msg = '';
     let jobCount = 0;
-    let jobStatus = {};
+    let jobStatus = '';
     for (const job of results) {
-      if ((job.targetDate===searchDate && hour>12) ||(job.targetDate===nxDateStr && hour!==16)) continue;
+      if (job.targetDate===searchDate && hour>12) continue;
+     /// if ((job.targetDate===searchDate && hour>12) ||(job.targetDate===nxDateStr && hour!==16)) continue;
       console.log(`詳細TEXT 確認: ${job.targetDate} ${job.time_full}`);
       jobCount++;
       await page.goto(job.url, { waitUntil: "networkidle2" });
@@ -214,6 +215,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
        jobStatus += '\n'+ `　${job.targetDate}　${job.time_full}　${job.applied} | ${job.vacancy} [${hitNames.join(', ')}]`;
 
     };
+   console.log(jobStatus);
 
     
 try{
@@ -228,7 +230,6 @@ try{
 //      jobStatus += '\n'+ `　${job.targetDate}　${job.time_full}　${job.applied} | ${job.vacancy}`;
 //      totalVacancy += job.vacancy;
 //    });
-   console.log(jobStatus);
    
    //jobループ
     for (const job of results) {
