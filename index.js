@@ -189,12 +189,10 @@ for (const job of results) {
     const matchingDiv = document.querySelector('#matching');
     if (!matchingDiv) return { countText: "0 / 0", names: [] };
     // ① マッチングしたワーカー（〇 / 〇人）のテキストを探す
-    // 「マッチングしたワーカー」という文字列を含むdivを検索
     const divs = Array.from(matchingDiv.querySelectorAll('div'));
     const countDiv = divs.find(d => d.innerText && d.innerText.includes('マッチングしたワーカー'));
     const countText = countDiv ? countDiv.innerText.match(/\d+\s*\/\s*\d+人/)?.[0] || "" : "";
     // ② <table>内の <a> タグからワーカー名を取得
-    // <a>の中の最初の<span>が名前（例：松平 里奈）
     const rows = Array.from(matchingDiv.querySelectorAll('table tbody tr'));
    const names = rows.map(row => {
       const nameLink = row.querySelector('a[href*="/users/"] span');
@@ -206,6 +204,8 @@ for (const job of results) {
  console.log(`　>> 画面上の確認: ${workerDetails.countText} 名: ${workerDetails.names.join(', ')}`);
 // 取得したデータを変数に格納
   const currentJobNames = workerDetails.names; // ['松平 里奈', '小浦 かなめ']
+}
+}catch(e){console.log(e)}
  
  
  
