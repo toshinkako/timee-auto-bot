@@ -205,18 +205,12 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
         }).filter(name => name); // nullを除外
        return { countText, names };
       });
-      const hitNames = workerDetails.names;
-      staffNames.push(...hitNames);
- const v2Report = `　${job.time_full}　${workerDetails.countText}　[${hitNames.join(', ')}]`;
-     console.log(` 詳細⓵ ${job.targetDate} ${v2Report}`)
-     msg += v2Report;
-     shiftLines.push(`　${job.time_full}　${workerDetails.countText}　[${hitNames.join(', ')}]`);
-     console.log(` 詳細３ ${shiftLines}`)
-       jobStatus += '\n'+ `　${job.targetDate}　${job.time_full}　${job.applied} | ${job.vacancy} [${hitNames.join(', ')}]`;
+      const namesStr = workerDetails.names.length > 0 ? workerDetails.names.join('、') : "未応募";
+      const reportLine = `${job.targetDate} ${job.time_full} 　${workerDetails.countText}　${namesStr}`;
 
+      shiftLines.push(reportLine);
+      msg += reportLine;
     };
-   console.log(jobStatus);
-
     
 try{
   console.log('msg/',msg)
