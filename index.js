@@ -204,15 +204,17 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
       const hitNames = workerDetails.names;
       staffNames.push(...hitNames);
  const v2Report = `　${job.time_full}　${workerDetails.countText}　[${hitNames.join(', ')}]`;
-
+     console.log(` 詳細⓵ ${job.targetDate} ${v2Report}`)
      msg += v2Report;
-      shiftLines.push(`　${job.time_full}　${workerDetails.countText}　[${hitNames.join(', ')}]`);
+     console.log(` 詳細２ ${msg}`)
+     shiftLines.push(`　${job.time_full}　${workerDetails.countText}　[${hitNames.join(', ')}]`);
+     console.log(` 詳細３ ${shiftLines
     };
 try{
-  console.log(msg)
+  console.log('msg/',msg)
 }catch(e){console.log(e)}
 try{
-  console.log(workerDetails)
+  console.log('workerDetails',workerDetails)
 }catch(e){console.log(e)}
 
    /////ここまで
