@@ -181,7 +181,10 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
     }, searchDate, nxDateStr);
 /////ここから
     for (const job of results) {
-      if ((job.targetDate===searchDate && hour>12) ||(job.targetDate===nxDateStr && hour!==16)) continue;
+      if ((job.targetDate===searchDate && hour>12) ||(job.targetDate===nxDateStr && hour!==15)){
+       console.log(`2-TEXT pass: ${job.targetDate} ${job.time_full}`);
+       continue;
+      }
       console.log(`詳細TEXT 確認: ${job.targetDate} ${job.time_full}`);
       await page.goto(job.url, { waitUntil: "networkidle2" });
       const workerDetails = await page.evaluate(() => {
@@ -223,8 +226,8 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
    
    //jobループ
     for (const job of results) {
-     console.log(`詳細確認開始: ${job.targetDate} ${job.time_full}`);
      if (hour<12 || job.targetDate===nxDateStr) continue;
+     console.log(`詳細確認開始: ${job.targetDate} ${job.time_full}`);
 ///     if (hour !== 16 && job.targetDate===nxDateStr) continue;
       //CSVダウンロード 
        await page.goto(job.url, { waitUntil: "networkidle2" });
