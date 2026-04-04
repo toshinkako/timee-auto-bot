@@ -150,11 +150,11 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
           const workerText = workerElem.innerText.match(/(\d+)\s*\/\s*(\d+)/);
           let applied = workerText ? parseInt(workerText[1]) : 0;
           let capacity = workerText ? parseInt(workerText[2]) : 0;
+          let status = `${jstTimeFull}　${applied} (${capacity - applied})`
           return {
-            targetDate: jstDateStr,
-            time_full: jstTimeFull,
+            targetDate: jstDateStr, time_full: jstTimeFull,
             applied: applied, capacity: capacity, vacancy: capacity - applied,
-            startH: hh, endH: jstEndH, url: jobUrl
+            startH: hh, endH: jstEndH, url: jobUrl ,sts: status
           };
         }
         return null;
@@ -205,14 +205,15 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
        return { countText, names };
       });
       const namesStr = workerDetails.names.length > 0 ? workerDetails.names.join('、') : "未応募";
-      const reportLine = `　${job.targetDate} ${job.time_full} 　${workerDetails.countText}　${namesStr}`;
-
+      ///const reportLine = `　${job.targetDate} ${job.time_full} 　${workerDetails.countText}　${namesStr}`;
+      const reportLine = `　${job.sts}　[${namesStr]}`;
+     
       shiftLines.push(reportLine);
       jobStatus.push(reportLine);
     };
     let jobStatusMsg = `${nxDateStr}募集: ${jobCount}件`;
     jobStatus.forEach(p => jobStatusMsg += '\n'+ p);
-    console.log(jobStatus)
+    console.log(jobStatusMsg)
 
    /////ここまで
 
