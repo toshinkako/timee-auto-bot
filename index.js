@@ -198,11 +198,11 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
         const rows = Array.from(matchingDiv.querySelectorAll('table tbody tr'));
         const names = rows.map(row => {
           const nameLink = row.querySelector('a[href*="/users/"] span');
-          return nameLink ? nameLink.innerText : null;
+          return nameLink ? nameLink.innerText.replace(/\s*/,'') : null;
         }).filter(name => name); // nullを除外
        return { countText, names };
       });
- console.log(`　>> 画面上の確認: ${workerDetails.countText} 名: ${workerDetails.names.replace(/\s*/,'').join(', ')}`);
+ console.log(`　>> 画面上の確認: ${workerDetails.countText} 名: ${workerDetails.names.join(', ')}`);
      // 取得したデータを変数に格納
       const hitNames = workerDetails.names;
  console.log('　>> 画面2')
