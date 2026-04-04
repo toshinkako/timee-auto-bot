@@ -13,7 +13,7 @@ if (fs.existsSync(cachePath)) {
 };
 if (hour<12 && lastStatus.vacant===false) {
   console.log("残り枠なし。スキップ。");
-  return; またはフラグを立てる
+  //return; またはフラグを立てる
 };
 if (hour>12 && hour!==16 && lastStatus.working===false) {
   console.log("退勤済み。スキップ。");
@@ -101,6 +101,8 @@ try{
   let anyStoreSent = false;
   let isWorking = false;
   let anyVacancies = false;
+if (hour<12 && lastStatus.vacant===false)sendMessage += '(テスト) 残なし'
+if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テスト) 終了'
  // 店舗ループ
   for(const CLIENT_ID of CLIENT_IDS){
    if (hour===6 && anyVacancies) continue;
@@ -178,8 +180,53 @@ try{
       });
       return extracted;
      }, searchDate, nxDateStr);
+/////
+try{
+  // 2. 当日の全求人行を解析
+  const jobData = await page.evaluate((m, d) => { // 引数名を短くして確実に受け取る
+    const results = [];
+    const dateQuery = `${m}月${d}日`; 
+    
+    const rows = Array.from(document.querySelectorAll('tr.css-1wwuwwa'));
+    
+    rows.forEach(row => {
+      const text = row.innerText || "";
+      if (text.includes(dateQuery)) {
 
-   
+        const statusDiv = row.querySelector('div[class*="bg-offeringStatus"]');
+        let status = statusDiv ? statusDiv.innerText.trim() : "マッチング中";
+
+        const timeMatch = text.match(/(\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})/);
+        const workerMatch = text.match(/(\d+)\s*\/\s*(\d+)\s*人/);
+        if (timeMatch || workerMatch) {
+          results.push({
+            status: status,
+            timeRange: timeMatch ? timeMatch[0] : "",
+            workerCount: workerMatch ? workerMatch[1] : "0",
+            workerLimit: workerMatch ? workerMatch[2] : "0"
+          });
+        }
+      }
+    });
+    return results;
+  }, mm, dd);
+  
+  console.log(`${store} の取得結果:`, jobData);
+  
+  // 取得結果から vacancy（募集残）を算出
+  let vacancy = "0";
+  if (jobData.length > 0) {
+    const totalCount = jobData.reduce((sum, job) => sum + parseInt(job.workerCount), 0);
+    const totalLimit = jobData.reduce((sum, job) => sum + parseInt(job.workerLimit), 0);
+    vacancy = (totalLimit - totalCount).toString();
+  } else {
+    console.log(`${store} 本日の求人が見つかりませんでした。`);
+    // 取得失敗時は念のためスクリーンショット
+    await page.screenshot({ path: `debug_${store}_no_data.png` });
+    //ontinue;
+  }
+}catch(e){console.log(e)}
+/////
     let jobStatus = `${searchDate}募集: ${results.length}件 || ${nxDateStr}`;
     results.forEach(job => {
       jobStatus += '\n'+ `　${job.targetDate}　${job.time_full}　${job.applied} | ${job.vacancy}`;
