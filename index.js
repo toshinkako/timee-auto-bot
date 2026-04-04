@@ -179,12 +179,15 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
       });
       return extracted;
     }, searchDate, nxDateStr);
-/////ここから
+
+   /////ここから
     let msg = '';
-    const workerDetails = {};
+    let jobCount = 0;
+    let jobStatus = {};
     for (const job of results) {
       if ((job.targetDate===searchDate && hour>12) ||(job.targetDate===nxDateStr && hour!==16)) continue;
       console.log(`詳細TEXT 確認: ${job.targetDate} ${job.time_full}`);
+      jobCount++;
       await page.goto(job.url, { waitUntil: "networkidle2" });
       const workerDetails = await page.evaluate(() => {
         const matchingDiv = document.querySelector('#matching');
@@ -206,25 +209,25 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
  const v2Report = `　${job.time_full}　${workerDetails.countText}　[${hitNames.join(', ')}]`;
      console.log(` 詳細⓵ ${job.targetDate} ${v2Report}`)
      msg += v2Report;
-     console.log(` 詳細２ ${msg}`)
      shiftLines.push(`　${job.time_full}　${workerDetails.countText}　[${hitNames.join(', ')}]`);
      console.log(` 詳細３ ${shiftLines}`)
+       jobStatus += '\n'+ `　${job.targetDate}　${job.time_full}　${job.applied} | ${job.vacancy} [${hitNames.join(', ')}]`;
+
     };
+
+    
 try{
   console.log('msg/',msg)
-}catch(e){console.log(e)}
-try{
-  console.log('workerDetails',workerDetails)
 }catch(e){console.log(e)}
 
    /////ここまで
 
  
-    let jobStatus = `${searchDate}/ ${nxDateStr}募集: ${results.length}件`;
-    results.forEach(job => {
-      jobStatus += '\n'+ `　${job.targetDate}　${job.time_full}　${job.applied} | ${job.vacancy}`;
-      totalVacancy += job.vacancy;
-    });
+//    let jobStatus = `${searchDate}/ ${nxDateStr}募集: ${results.length}件`;
+//    results.forEach(job => {
+//      jobStatus += '\n'+ `　${job.targetDate}　${job.time_full}　${job.applied} | ${job.vacancy}`;
+//      totalVacancy += job.vacancy;
+//    });
    console.log(jobStatus);
    
    //jobループ
