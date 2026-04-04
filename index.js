@@ -181,7 +181,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
     }, searchDate, nxDateStr);
 /////ここから
     let msg = '';
-    const workerDetails;
+    const workerDetails = {};
     for (const job of results) {
       if ((job.targetDate===searchDate && hour>12) ||(job.targetDate===nxDateStr && hour!==16)) continue;
       console.log(`詳細TEXT 確認: ${job.targetDate} ${job.time_full}`);
