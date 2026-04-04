@@ -199,10 +199,10 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
         const names = rows.map(row => {
           const nameLink = row.querySelector('a[href*="/users/"] span');
           return nameLink ? nameLink.innerText : null;
-        }).filter(name => name.replace(/\s*/,'')); // nullを除外
+        }).filter(name => name); // nullを除外
        return { countText, names };
       });
- console.log(`　>> 画面上の確認: ${workerDetails.countText} 名: ${workerDetails.names.join(', ')}`);
+ console.log(`　>> 画面上の確認: ${workerDetails.countText} 名: ${workerDetails.names.replace(/\s*/,'').join(', ')}`);
      // 取得したデータを変数に格納
       const hitNames = workerDetails.names;
  console.log('　>> 画面2')
