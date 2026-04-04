@@ -37,17 +37,16 @@ try{
   const dd = String(now.getDate());
   const date = `${yyyy}/${mm}/${dd}`;
   const time = now.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
-  const searchDate = `${mm}月${dd}日`;
-  ///const MODE = hour < 12 ? "morning" : "workcheck";
+  ///const searchDate = `${mm}月${dd}日`;
   const nxDate = now;
   nxDate.setDate(now.getDate() + 1);
    const nxm = String(nxDate.getMonth() + 1);
    const nxd = String(nxDate.getDate());
   const nxDateStr = `${nxm}月${nxd}日`;
-  const nxdate = `${yyyy}/${nxm}/${nxd}`;
+  ///const nxdate = `${yyyy}/${nxm}/${nxd}`;
 
-  ///const searchDate = "3月19日";
-  ///const nxDateStr =  "3月28日";;
+  const searchDate = "3月19日";
+  const nxDateStr =  "3月28日";;
    
   const downloadPath = process.cwd();
   fs.readdirSync(downloadPath).forEach(f => {
