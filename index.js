@@ -182,7 +182,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
 /////ここから
     for (const job of results) {
       if ((job.targetDate===searchDate && hour>12) ||(job.targetDate===nxDateStr && hour!==15)){
-       console.log(`2-TEXT pass: ${job.targetDate} ${job.time_full}`);
+       console.log(`2-TEXT pass: ${job.targetDate}`);
        continue;
       }
       console.log(`詳細TEXT 確認: ${job.targetDate} ${job.time_full}`);
