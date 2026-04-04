@@ -182,7 +182,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
 /////ここから
     for (const job of results) {
       if ((job.targetDate===searchDate && hour>12) ||(job.targetDate===nxDateStr && hour!==16)) continue;
-      console.log(`詳細確認開始: ${job.targetDate} ${job.time_full}`);
+      console.log(`詳細TEXT 確認: ${job.targetDate} ${job.time_full}`);
       await page.goto(job.url, { waitUntil: "networkidle2" });
       const workerDetails = await page.evaluate(() => {
         const matchingDiv = document.querySelector('#matching');
@@ -199,18 +199,19 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
         }).filter(name => name.trim().replace(/\s*/,'')); // nullを除外
        return { countText, names };
       });
-      // 取得したデータを変数に格納
+ console.log(`　>> 画面上の確認: ${workerDetails.countText} 名: ${workerDetails.names.join(', ')}`);
+     // 取得したデータを変数に格納
       const hitNames = workerDetails.names;
-      staffNames.push(...hitNames);
+ console.log(`　>> 画面2 ${hitNames}`
+     staffNames.push(...hitNames);
       shiftLines.push(`　${job.time_full}　${workerDetails.countText}　[${hitNames.join(', ')}]`);
- console.log(`　>> 画面上の確認: ${workerDetails.countText} 名: ${workerDetails.names.join(', ')} ${hitNames} ${staffNames} ${shiftLines}`);
     };
 
 
 /////ここまで
 
  
-    let jobStatus = `${searchDate}募集: ${results.length}件 || ${nxDateStr}`;
+    let jobStatus = `${searchDate}/ ${nxDateStr}募集: ${results.length}件`;
     results.forEach(job => {
       jobStatus += '\n'+ `　${job.targetDate}　${job.time_full}　${job.applied} | ${job.vacancy}`;
       totalVacancy += job.vacancy;
