@@ -181,9 +181,8 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
     }, searchDate, nxDateStr);
 
    /////ここから
-    let msg = '';
     let jobCount = 0;
-    let jobStatus = '';
+    let jobStatus = [];
     for (const job of results) {
       if (job.targetDate===searchDate && hour>12) continue;
      /// if ((job.targetDate===searchDate && hour>12) ||(job.targetDate===nxDateStr && hour!==16)) continue;
@@ -206,15 +205,14 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
        return { countText, names };
       });
       const namesStr = workerDetails.names.length > 0 ? workerDetails.names.join('、') : "未応募";
-      const reportLine = `${job.targetDate} ${job.time_full} 　${workerDetails.countText}　${namesStr}`;
+      const reportLine = `　${job.targetDate} ${job.time_full} 　${workerDetails.countText}　${namesStr}`;
 
       shiftLines.push(reportLine);
-      msg += reportLine;
+      jobStatus.push(reportLine);
     };
-    
-try{
-  console.log('msg/',msg)
-}catch(e){console.log(e)}
+    let jobStatusMsg = `${nxDateStr}募集: ${jobCount}件`;
+    jobStatus.forEach(p => jobStatusMsg += '\n'+ p);
+    console.log(jobStatus)
 
    /////ここまで
 
