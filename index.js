@@ -202,9 +202,12 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
  console.log(`　>> 画面上の確認: ${workerDetails.countText} 名: ${workerDetails.names.join(', ')}`);
      // 取得したデータを変数に格納
       const hitNames = workerDetails.names;
- console.log(`　>> 画面2 ${hitNames}`
+ console.log(`　>> 画面2`}
+ console.log(`　>> 画面2 ${hitNames}`}
      staffNames.push(...hitNames);
+ console.log(`　>> 画面3`}
       shiftLines.push(`　${job.time_full}　${workerDetails.countText}　[${hitNames.join(', ')}]`);
+ console.log(`　>> 画面4`}
     };
 
 
