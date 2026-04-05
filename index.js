@@ -38,14 +38,13 @@ try{
   const date = `${yyyy}/${mm}/${dd}`;
   const time = now.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
   ///const searchDate = `${mm}月${dd}日`;
+const searchDate = "3月19日";
   const nxDate = now;
   nxDate.setDate(now.getDate() + 1);
    const nxm = String(nxDate.getMonth() + 1);
    const nxd = String(nxDate.getDate());
   ///const nxDateStr = `${nxm}月${nxd}日`;
-
-  const searchDate = "3月19日";
-  const nxDateStr =  "3月28日";;
+const nxDateStr =  "3月28日";;
   const nxdate = `${yyyy}/${nxm}/${nxd}`;
    
   const downloadPath = process.cwd();
@@ -189,7 +188,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
      //募集詳細
       ///if (job.targetDate===searchDate && hour>12) continue;
       const jApply = [];
-      if ((job.targetDate===searchDate && hour<12) || (job.targetDate===nxDateStr && hour>12)) {
+      if ((job.targetDate===searchDate && hour<12) || (job.targetDate===nxDateStr && hour>11)) {
        console.log(`詳細対象: ${job.targetDate} ${job.time_full}`);
         jobCount++;
         const matchingDiv = document.querySelector('#matching');
