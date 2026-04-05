@@ -200,8 +200,9 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
             const nameLink = row.querySelector('a[href*="/users/"] span');
             return nameLink ? nameLink.innerText.trim().split(/[ 　]/)[0] : null;
           }).filter(name => name); // nullを除外
-         return names;
+         return {found:true,rC:rows.length,names};
         });
+         console.log("debugInfo       =", JSON.stringify(details, null, 2));
 console.log("@1 details =", details);
 console.log("@1 details(JSON) =", JSON.stringify(details));
 console.log("@2 jApply =", jApply);
@@ -287,12 +288,13 @@ console.log("@2 jApply(JSON) =", JSON.stringify(jApply));
      const names2Str = workerDetails.name2s.length > 0 ? workerDetails.name2s.join('、') : "未応募";
       shiftLines.push(`　${job.sts}　[${names2Str}]`);
       */
-     const namesStr = details.names.length > 0 ? details.names.join('、') : "未応募";
+     /*const namesStr = details.names.length > 0 ? details.names.join('、') : "未応募";
       ///const reportLine = `　${job.targetDate} ${job.time_full} 　${workerDetails.countText}　${namesStr}`;
       const reportLine = `　${job.sts}　[${namesStr}]`;
       jobStatus.push(reportLine);
       if (job.startH < 12) amTotal += job.applied;
       if (job.endH > 13) pmTotal += job.applied;
+      */
     };
 
    //const jobStatus2Msg = `\n--- ${store} 報告: ${jobCount}件 ---\n${nxDateStr}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
