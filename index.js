@@ -199,7 +199,8 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
           }).filter(name => name); // nullを除外
           return { names };
         };
-      } else if (job.targetDate===searchDate) {
+      };
+      if (job.targetDate===searchDate) {
        console.log(`DL対象: ${job.targetDate} ${job.time_full}`);
        
       };
