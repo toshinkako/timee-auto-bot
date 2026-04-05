@@ -1,6 +1,6 @@
 process.env.TZ = "Asia/Tokyo";
 //const now = new Date();
-const now = new Date('2026/3/18');
+const now = new Date('2026/3/18 16:00');
 const hour = now.getHours();
 const puppeteer = require("puppeteer-core");
 const fs = require("fs");
@@ -267,31 +267,20 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
         });
       }; //(job.targetDate===searchDate)
       
-      /*const workerDetails = await page.evaluate(() => {
-        const matchingDiv = document.querySelector('#matching');
-        if (!matchingDiv) return { countText: "0 / 0", names: [] };
-        // ① マッチングしたワーカー（〇 / 〇人）のテキストを探す
+      /*
         const divs = Array.from(matchingDiv.querySelectorAll('div'));
         const countDiv = divs.find(d => d.innerText && d.innerText.includes('マッチングしたワーカー'));
         const countText = countDiv ? countDiv.innerText.match(/\d+\s*\/\s*\d+人/)?.[0] || "" : "";
-        // ② <table>内の <a> タグからワーカー名を取得
-        const row2s = Array.from(matchingDiv.querySelectorAll('table tbody tr'));
-        const name2s = row2s.map(row => {
-          const nameLink = row.querySelector('a[href*="/users/"] span');
-          return nameLink ? nameLink.innerText.trim().split(/[ 　]/)[0] : null;
-        }).filter(name => name); // nullを除外
        return { countText, name2s };
-      });
       */
     };
-
-   let jobStatusMsg = `\n--- ${store} 報告: ${jobCount}件 ---`;
-   if (jobCount>0) {
-     jobStatusMsg += `\n${nxDateStr}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${jobStatus.sort().join('\n')}\n`;
-   } else {
-     jobStatusMsg += '\n募集なし'
-   };
-   console.log('@@@\n'+jobStatusMsg)
+    let jobStatusMsg = `\n--- ${store} 報告: ${jobCount}件 ---`;
+    if (jobCount>0) {
+      jobStatusMsg += `\n${nxDateStr}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${jobStatus.sort().join('\n')}\n`;
+    } else {
+      jobStatusMsg += '\n募集なし'
+    };
+    console.log('@@@\n'+jobStatusMsg)
 
 
    /////ここまで
