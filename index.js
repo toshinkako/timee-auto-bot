@@ -203,10 +203,9 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
       });
       jobCount++;
       totalStaff += details.length;
-      const namesStr = details.length>0 ? details.join('、') : "未応募";
+      const namesStr = details.length>0 ? details.join(', ') : "未応募";
       staffNames = staffNames.concat(namesStr);
-console.log('staffNames',staffNames)
-     jobStatus.push(`　${job.sts}　[${namesStr}]`);
+      jobStatus.push(`　${job.sts}　[${namesStr}]`);
       if (job.startH < 12) amTotal += job.applied;
       if (job.endH > 13) pmTotal += job.applied;
       totalVacancy += job.vacancy;
@@ -280,8 +279,7 @@ console.log('staffNames',staffNames)
   };
   if (totalVacancy >0) anyVacancies = true;
   if (hour===16 || hour===8 || !anyVacancies) {
-console.log(nxDate,totalStaff,staffNames,totalVacancy)
-    await writeSheet(nxDate,time,store,totalStaff,staffNames.join(','),totalVacancy,'','');
+    await writeSheet(nxDate,time,store,totalStaff,staffNames.join(', '),totalVacancy,'','');
   };
   
 
