@@ -209,7 +209,6 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
     if (job.targetDate===searchDate) {
     /// if ((job.targetDate===searchDate && hour>12) ||(job.targetDate===nxDateStr && hour!==16)) continue;
      console.log(`DL対象: ${job.targetDate} ${job.time_full}`);
-   continue;
       const downloadPath = require('path').resolve('./downloads');
       if (!fs.existsSync(downloadPath)) fs.mkdirSync(downloadPath);
       await page._client().send('Page.setDownloadBehavior', {
@@ -257,7 +256,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
       isWorking = staff.some(s => s.end === null || s.end === '');
       if (isWorking) {
         console.log(`${store} 勤務中あり`);
- ///       if (hour !== 16) continue;
+        continue;
       };
       staff.forEach(s => {
         const h = calcIndividualWork(s);
@@ -266,12 +265,8 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
       });
     }; //(job.targetDate===searchDate)
       
-      /*
-        const divs = Array.from(matchingDiv.querySelectorAll('div'));
-        const countDiv = divs.find(d => d.innerText && d.innerText.includes('マッチングしたワーカー'));
-        const countText = countDiv ? countDiv.innerText.match(/\d+\s*\/\s*\d+人/)?.[0] || "" : "";
-       return { countText, name2s };
-      */
+       /// const countDiv = divs.find(d => d.innerText && d.innerText.includes('マッチングしたワーカー'));
+       /// const countText = countDiv ? countDiv.innerText.match(/\d+\s*\/\s*\d+人/)?.[0] || "" : "";
   };
   let storeReport = `\n--- ${store} 報告: ${job.targetDate}　${jobCount}件 ---`;
   if (jobCount>0) {
@@ -283,81 +278,11 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
    /*
    //jobループ
     for (const job of results) {
-     if (hour<12 || job.targetDate===nxDateStr) continue;
-     console.log(`詳細確認開始: ${job.targetDate} ${job.time_full}`);
-///     if (hour !== 16 && job.targetDate===nxDateStr) continue;
-      //CSVダウンロード
-       await page.goto(job.url, { waitUntil: "networkidle2" });
-       await new Promise(r => setTimeout(r, 3000));
-       const downloadPath = require('path').resolve('./downloads');
-       if (!fs.existsSync(downloadPath)) fs.mkdirSync(downloadPath);
-       await page._client().send('Page.setDownloadBehavior', {
-         behavior: 'allow',
-         downloadPath: downloadPath,
-       });
-       let csvBuffer = null;
-       const listener = async (res) => {
-         const url = res.url();
-         if (!url.includes('users.csv')) return;
-         if (res.request().method() !== 'GET') return;
-         try{
-          const buffer = await res.buffer();
-          if (buffer.length < 100) return;
-          if (buffer && buffer.length > 100) {
-            csvBuffer = buffer;
-          }
-         }catch(e){ console.log("CSV取得失敗:", e.message); }
-       };
-       page.on('response', listener);
-       const clicked = await page.evaluate(() => {
-         const btn = document.querySelector('button[data-dd-action-name*="CSVダウンロード"]');
-         if(btn){
-           btn.scrollIntoView();
-           btn.click();
-           return true;
-         }
-         return false;
-       });
-       for(let i=0;i<10;i++){
-         if(csvBuffer) break;
-         await new Promise(r => setTimeout(r,1000));
-       }
-       page.off('response', listener);
-       if(!csvBuffer){ throw new Error("CSV取得失敗"); }
-       const tempCsvName = `users_${CLIENT_ID}_${Date.now()}.csv`;
-       const tempCsvPath = path.join(downloadPath, tempCsvName);
-       fs.writeFileSync(tempCsvPath, csvBuffer);
-       console.log("CSV保存完了");
-       const csv = csvBuffer.toString("utf-8");
-       const lines = csv.split(/\r?\n/).filter(line => line.trim() !== "");
-       const data = lines.slice(1).map(l => l.split(","));
-       const staff = data.map(row => {
-         return { name: row[1], start: row[10], end: row[11] };
-       }).filter(Boolean);
-       if (fs.existsSync(tempCsvPath)) fs.unlinkSync(tempCsvPath);
-      //応募状況
-       const staffCount = staff.length;
+     if (hour !== 16 && job.targetDate===nxDateStr) continue;
+       
        if (job.targetDate===nxDateStr) {
          totalStaff[1] += staffCount;
-         const names = staff.map(s => s.name).join(", ");
-         staffNames.push(...names);
-         if (job.startH < 12) amTotal += job.applied;
-         if (job.endH > 13) pmTotal += job.applied;
-         shiftLines.push(`　${job.time_full}　${job.applied}（${job.vacancy}）[${names}]`);
        };
-      //勤務結果
-       if (job.targetDate===searchDate) {
-         isWorking = staff.some(s => s.end === null || s.end === '');
-         if (isWorking) {
-           console.log(`${store} 勤務中あり`);
-           if (hour !== 16) continue;
-         };
-         staff.forEach(s => {
-           const h = calcIndividualWork(s);
-           totalHours += parseFloat(h);
-           storeSummaryMap[h] = (storeSummaryMap[h] || 0) + 1;
-         });
-       }
     }; // jobループ終了
     */
 
@@ -368,7 +293,7 @@ console.log(`anyVacancies: ${anyVacancies}  isWorking: ${isWorking}`)
       const summaryStr = Object.entries(storeSummaryMap).map(([h, c]) => `${h} x ${c}`).join(", ");
       totalHours = totalHours.toFixed(2);
 console.log(date,time,store,totalStaff[0],totalHours,summaryStr,'/',nxdate,totalStaff[1],staffNamesStr,totalVacancy)
-     await writeSheet(date,time,store,totalStaff[0],'','',totalHours,summaryStr);
+     await writeSheet(date,time,store,'','','',totalHours,summaryStr);
       await writeSheet(nxdate,time,store,totalStaff[1],staffNamesStr,totalVacancy,'','');
       console.log(`${store} シート記録`);
     };
