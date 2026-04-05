@@ -181,6 +181,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
   let rDate = '';
   let jobCount = 0;
   let jobStatus = [];
+  let csvCount = 0;
   for (const job of results) {
     await page.goto(job.url, { waitUntil: "networkidle2" });
     await new Promise(r => setTimeout(r, 3000));
@@ -191,7 +192,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
       const details = await page.evaluate(() => {
         const matchingDiv = document.querySelector('#matching');
         if (!matchingDiv) return [];
-        /// divs =
+        /// const divs = Array.from(matchingDiv.querySelectorAll('div'));
         /// const countDiv = divs.find(d => d.innerText && d.innerText.includes('マッチングしたワーカー'));
         /// const countText = countDiv ? countDiv.innerText.match(/\d+\s*\/\s*\d+人/)?.[0] || "" : "";
         const rows = Array.from(matchingDiv.querySelectorAll('table tbody tr'));
@@ -231,6 +232,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
        }catch(e){ console.log("CSV取得失敗:", e.message); }
       };
       page.on('response', listener);
+      csvCount++;
       const clicked = await page.evaluate(() => {
         const btn = document.querySelector('button[data-dd-action-name*="CSVダウンロード"]');
         if(btn){
@@ -268,11 +270,12 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
       };
     };
   }; //jobループ
+  console.log(`rDate ${rDate})
   let storeReport = `\n--- ${store} 報告: ${rDate}　${jobCount}件 ---`;
   if (jobCount>0) {
     storeReport += `\n　　午前 ${amTotal}人　午後 ${pmTotal}人\n${jobStatus.sort().join('\n')}\n`;
   } else {
-    storeReport += '\n　募集なし';
+    storeReport += '\n　募集なし\n';
   };
   if (totalVacancy >0) anyVacancies = true;
   if (!anyVacancies) {
@@ -280,8 +283,8 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
     console.log(sendMessage);
     await writeSheet(nxDate,time,store,totalStaff,staffNames.join(', '),totalVacancy,'','');
   };
-  if (!isWorking && jobCount>0) {
-console.log(`jobCount ${jobCount}`)
+  if (!isWorking && csvCount>0) {
+console.log(`csvCount ${csvCount}`)
     const summaryStr = Object.entries(storeSummaryMap).map(([h, c]) => `${c} x ${h}`).join(", ");
     totalHours = totalHours.toFixed(2);
     await writeSheet(date,time,store,'','','',totalHours,summaryStr);
