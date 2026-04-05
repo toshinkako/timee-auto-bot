@@ -206,7 +206,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
       const namesStr = details.length>0 ? details.join('、') : "未応募";
      // xstaffNames = [...new Set(namesStr)].join(", ");
       staffNames = staffNames.concat();
-console.log(`staffNames ${staffNames}` / )
+console.log(`staffNames ${staffNames}`)
      jobStatus.push(`　${job.sts}　[${namesStr}]`);
       if (job.startH < 12) amTotal += job.applied;
       if (job.endH > 13) pmTotal += job.applied;
