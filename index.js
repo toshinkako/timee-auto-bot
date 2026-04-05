@@ -1,5 +1,6 @@
 process.env.TZ = "Asia/Tokyo";
-const now = new Date();
+//const now = new Date();
+const now = new Date('2026/3/18');
 const hour = now.getHours();
 const puppeteer = require("puppeteer-core");
 const fs = require("fs");
@@ -37,14 +38,12 @@ try{
   const dd = String(now.getDate());
   const date = `${yyyy}/${mm}/${dd}`;
   const time = now.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
-  ///const searchDate = `${mm}月${dd}日`;
-const searchDate = "3月19日";
+  const searchDate = `${mm}月${dd}日`;
   const nxDate = now;
   nxDate.setDate(now.getDate() + 1);
    const nxm = String(nxDate.getMonth() + 1);
    const nxd = String(nxDate.getDate());
-  ///const nxDateStr = `${nxm}月${nxd}日`;
-const nxDateStr =  "3月28日";;
+  const nxDateStr = `${nxm}月${nxd}日`;
   const nxdate = `${yyyy}/${nxm}/${nxd}`;
    
   const downloadPath = process.cwd();
@@ -204,6 +203,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
         jobStatus.push(`　${job.sts}　[${namesStr}]`);
         if (job.startH < 12) amTotal += job.applied;
         if (job.endH > 13) pmTotal += job.applied;
+        totalVacancy += job.vacancy;
       };  //((job.targetDate===searchDate && hour<12) || (job.targetDate===nxDateStr && hour>12))
 
      
@@ -282,34 +282,21 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
         }).filter(name => name); // nullを除外
        return { countText, name2s };
       });
-     const names2Str = workerDetails.name2s.length > 0 ? workerDetails.name2s.join('、') : "未応募";
-      shiftLines.push(`　${job.sts}　[${names2Str}]`);
-      */
-     /*
-     const namesStr = details.names.length > 0 ? details.names.join('、') : "未応募";
-      ///const reportLine = `　${job.targetDate} ${job.time_full} 　${workerDetails.countText}　${namesStr}`;
-      const reportLine = `　${job.sts}　[${namesStr}]`;
-      jobStatus.push(reportLine);
-      if (job.startH < 12) amTotal += job.applied;
-      if (job.endH > 13) pmTotal += job.applied;
       */
     };
-    const jobStatusMsg = `\n--- ${store} 報告: ${jobCount}件 ---\n${nxDateStr}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${jobStatus.sort().join('\n')}\n`;
-    console.log('@@@\n'+jobStatusMsg)
 
-   //const jobStatus2Msg = `\n--- ${store} 報告: ${jobCount}件 ---\n${nxDateStr}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
-//   let jobStatusMsg = `${nxDateStr}募集: ${jobCount}件`;
-//    jobStatus.forEach(p => jobStatusMsg += '\n'+ p);
-    //console.log(jobStatus2Msg)
+   let jobStatusMsg = `\n--- ${store} 報告: ${jobCount}件 ---`;
+   if (jobCount>0) {
+     jobStatusMsg += `\n${nxDateStr}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${jobStatus.sort().join('\n')}\n`;
+   } else {
+     jobStatusMsg += '\n募集なし'
+   };
+   console.log('@@@\n'+jobStatusMsg)
+
 
    /////ここまで
 
  
-//    let jobStatus = `${searchDate}/ ${nxDateStr}募集: ${results.length}件`;
-//    results.forEach(job => {
-//      jobStatus += '\n'+ `　${job.targetDate}　${job.time_full}　${job.applied} | ${job.vacancy}`;
-//      totalVacancy += job.vacancy;
-//    });
    /*
    //jobループ
     for (const job of results) {
