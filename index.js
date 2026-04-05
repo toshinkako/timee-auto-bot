@@ -185,8 +185,8 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
     await page.goto(job.url, { waitUntil: "networkidle2" });
     await new Promise(r => setTimeout(r, 3000));
    //募集詳細
-    if ((job.targetDate===searchDate && hour<12) || (job.targetDate===nxStr && hour>11)) {
-     console.log(`詳細対象: ${job.targetDate} ${job.time_full}`);
+    if ((job.targetDate===searchDate && hour<12) || (job.targetDate===nxStr && hour===16)) {
+     console.log(`対象: ${job.targetDate} ${job.time_full}`);
       if ( rDate==='') rDate = job.targetDate;
       const details = await page.evaluate(() => {
         const matchingDiv = document.querySelector('#matching');
@@ -284,18 +284,13 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
     await writeSheet(nxDate,time,store,totalStaff,staffNames.join(', '),totalVacancy,'','');
   };
   
-
-  
-  if (!isWorking && results.length >0 ) {
-      ///const staffNamesStr = [...new Set(staffNames)].join(", ");
-      const summaryStr = Object.entries(storeSummaryMap).map(([h, c]) => `${c} x ${h}`).join(", ");
-      totalHours = totalHours.toFixed(2);
-console.log(date,store,totalHours,summaryStr)
-     await writeSheet(date,time,store,'','','',totalHours,summaryStr);
-      console.log(`${store} シート記録`);
-    };
-
-
+  if (!isWorking && results.length>0) {
+    const summaryStr = Object.entries(storeSummaryMap).map(([h, c]) => `${c} x ${h}`).join(", ");
+    totalHours = totalHours.toFixed(2);
+console.log(results.length,date,store,totalHours,summaryStr)
+    await writeSheet(date,time,store,'','','',totalHours,summaryStr);
+    console.log(`${store} シート記録`);
+  };
 
    // 店舗ごとのメッセージ組み立て
     console.log(`${store} 完了    ${storeReport}`);
@@ -388,12 +383,12 @@ async function writeSheet(date, time, store, count, staff, vacancy, total, summa
       valueInputOption: "USER_ENTERED",
       requestBody: { values }
     });
-    console.log(`${store} のデータを上書きしました。${values}`);
+    console.log(`${date}_${store} のデータを上書きしました。${values}`);
   } else {
     const values = [[date, time, store, count, staff, vacancy, total, summary]];
     await sheets.spreadsheets.values.append({
       spreadsheetId, range: "Sheet1!A1", valueInputOption: "USER_ENTERED", requestBody: { values }
     });
-    console.log(`${store} の新規データを追加しました。\n${values}`);
+    console.log(`${date}_${store} の新規データを追加しました。\n${values}`);
   }
 }
