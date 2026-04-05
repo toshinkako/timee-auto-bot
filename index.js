@@ -201,15 +201,24 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
           }).filter(name => name); // nullを除外
          return names;
         });
-         console.log("debugInfo       =", JSON.stringify(details, null, 2));
-console.log("@1 details =", details);
-console.log("@1 details(JSON) =", JSON.stringify(details));
-console.log("@2 jApply =", jApply);
+        const namesStr = details.length>0 ? details.join('、') : "未応募";
+        const rpLine = `　${job.sts}　[${namesStr}]`;
+        jobStatus.push(rpLine);
+        if (job.startH < 12) amTotal += job.applied;
+        if (job.endH > 13) pmTotal += job.applied;
+
        jApply.push(...details);
 console.log("@2 jApply(JSON) =", JSON.stringify(jApply));
       };  //((job.targetDate===searchDate && hour<12) || (job.targetDate===nxDateStr && hour>12))
       console.log(`@2 ${jApply}`)
-      if (job.targetDate===searchDate) {
+      const jobStatusMsg = `\n--- ${store} 報告: ${jobCount}件 ---\n${nxDateStr}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${jobStatus.sort().join('\n')}\n`;
+      console.log(jobStatusMsg)
+
+     
+
+
+     
+     if (job.targetDate===searchDate) {
       /// if ((job.targetDate===searchDate && hour>12) ||(job.targetDate===nxDateStr && hour!==16)) continue;
        console.log(`DL対象: ${job.targetDate} ${job.time_full}`);
     continue;
@@ -287,7 +296,8 @@ console.log("@2 jApply(JSON) =", JSON.stringify(jApply));
      const names2Str = workerDetails.name2s.length > 0 ? workerDetails.name2s.join('、') : "未応募";
       shiftLines.push(`　${job.sts}　[${names2Str}]`);
       */
-     /*const namesStr = details.names.length > 0 ? details.names.join('、') : "未応募";
+     /*
+     const namesStr = details.names.length > 0 ? details.names.join('、') : "未応募";
       ///const reportLine = `　${job.targetDate} ${job.time_full} 　${workerDetails.countText}　${namesStr}`;
       const reportLine = `　${job.sts}　[${namesStr}]`;
       jobStatus.push(reportLine);
@@ -300,8 +310,6 @@ console.log("@2 jApply(JSON) =", JSON.stringify(jApply));
 //   let jobStatusMsg = `${nxDateStr}募集: ${jobCount}件`;
 //    jobStatus.forEach(p => jobStatusMsg += '\n'+ p);
     //console.log(jobStatus2Msg)
-    const jobStatusMsg = `\n--- ${store} 報告: ${jobCount}件 ---\n${nxDateStr}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${jobStatus.sort().join('\n')}\n`;
-    console.log(jobStatusMsg)
 
    /////ここまで
 
