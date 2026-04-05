@@ -39,11 +39,11 @@ try{
   const date = `${yyyy}/${mm}/${dd}`;
   const time = now.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
   const searchDate = `${mm}月${dd}日`;
-  const nxDate = now;
-  nxDate.setDate(now.getDate() + 1);
-   const nxm = String(nxDate.getMonth() + 1);
-   const nxd = String(nxDate.getDate());
-  const nxDateStr = `${nxm}月${nxd}日`;
+  const nDate = now;
+  nDate.setDate(now.getDate() + 1);
+   const nxm = String(nDate.getMonth() + 1);
+   const nxd = String(nDate.getDate());
+  const nxStr = `${nxm}月${nxd}日`;
   const nxdate = `${yyyy}/${nxm}/${nxd}`;
    
   const downloadPath = process.cwd();
@@ -176,7 +176,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
       };
     });
     return extracted;
-  }, searchDate, nxDateStr);
+  }, searchDate, nxStr);
 
   let rDate = '';
   let jobCount = 0;
@@ -185,7 +185,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
     await page.goto(job.url, { waitUntil: "networkidle2" });
     await new Promise(r => setTimeout(r, 3000));
    //募集詳細
-    if ((job.targetDate===searchDate && hour<12) || (job.targetDate===nxDateStr && hour>11)) {
+    if ((job.targetDate===searchDate && hour<12) || (job.targetDate===nxStr && hour>11)) {
      console.log(`詳細対象: ${job.targetDate} ${job.time_full}`);
       if ( rDate==='') rDate = job.targetDate;
       const details = await page.evaluate(() => {
@@ -209,7 +209,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
       if (job.startH < 12) amTotal += job.applied;
       if (job.endH > 13) pmTotal += job.applied;
       totalVacancy += job.vacancy;
-    };  //((job.targetDate===searchDate && hour<12) || (job.targetDate===nxDateStr && hour>12))
+    };  //((job.targetDate===searchDate && hour<12) || (job.targetDate===nxStr && hour>12))
     
     
    //勤務時間
@@ -310,10 +310,10 @@ if (anyStoreSent){
  anyStoreSent = false
   if (anyStoreSent) {
     await transporter.sendMail({
-      from: `"Timee自動報告" <toshin.kakou@gmail.com>`,
+      from: `"Timee報告" <toshin.kakou@gmail.com>`,
       to: "mizuno.yoshifumi@marushin-gp.co.jp",
       subject: '【Timee報告】',
-      text: sendMessage, // Slackと同じ内容を送信
+      text: sendMessage
     });
     console.log("Gmail送信完了");
     await fetch(SLACK_WEBHOOK, {
