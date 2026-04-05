@@ -292,8 +292,8 @@ console.log(`jobCount ${jobCount}`)
  };    //ループ終了
 
 console.log(`anyVacancies: ${anyVacancies}  isWorking: ${isWorking}`)
+//  if (jobCount>0 && !anyVacancies) anyStoreSent = true;
 ///anyStoreSent = false
-  if (jobCount>0 && !anyVacancies) anyStoreSent = true;
   if (anyStoreSent) {
     await transporter.sendMail({
       from: `"Timee報告" <toshin.kakou@gmail.com>`,
