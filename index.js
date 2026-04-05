@@ -204,8 +204,10 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
       jobCount++;
       totalStaff += details.length;
       const namesStr = details.length>0 ? details.join('、') : "未応募";
-      staffNames = [...new Set(namesStr)].join(", ");
-      jobStatus.push(`　${job.sts}　[${namesStr}]`);
+     // xstaffNames = [...new Set(namesStr)].join(", ");
+      staffNames = staffNames.concat();
+console.log(`staffNames ${staffNames}` / )
+     jobStatus.push(`　${job.sts}　[${namesStr}]`);
       if (job.startH < 12) amTotal += job.applied;
       if (job.endH > 13) pmTotal += job.applied;
       totalVacancy += job.vacancy;
@@ -213,9 +215,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
     
     
    //勤務時間
-    if (job.targetDate===searchDate) {
-    /// if ((job.targetDate===searchDate && hour>12) ||(job.targetDate===nxDateStr && hour!==16)) continue;
-    /// if (hour !== 16 && job.targetDate===nxDateStr) continue;
+    if (job.targetDate===searchDate && hour>12) {
      console.log(`DL対象: ${job.targetDate} ${job.time_full}`);
       const downloadPath = require('path').resolve('./downloads');
       if (!fs.existsSync(downloadPath)) fs.mkdirSync(downloadPath);
@@ -281,8 +281,8 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
   };
   if (totalVacancy >0) anyVacancies = true;
   if (hour===16) {
-console.log(rDate,totalStaff,staffNames,totalVacancy)
-    await writeSheet(rDate,time,store,totalStaff,staffNames,totalVacancy,'','');
+console.log(nxDate,totalStaff,staffNames,totalVacancy)
+    await writeSheet(nxDate,time,store,totalStaff,staffNames,totalVacancy,'','');
   };
   
 
