@@ -188,7 +188,8 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
       await new Promise(r => setTimeout(r, 3000));
      //募集詳細
       ///if (job.targetDate===searchDate && hour>12) continue;
-      if ((job.targetDate===searchDate && hour<12) || (job.targetDate===nxDateStr && hour>12)){
+      const jApply = [];
+      if ((job.targetDate===searchDate && hour<12) || (job.targetDate===nxDateStr && hour>12)) {
        console.log(`詳細対象: ${job.targetDate} ${job.time_full}`);
         jobCount++;
         const details = await page.evaluate(() => {
@@ -197,14 +198,71 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
             const nameLink = row.querySelector('a[href*="/users/"] span');
             return nameLink ? nameLink.innerText.trim().split(/[ 　]/)[0] : null;
           }).filter(name => name); // nullを除外
-          return { names };
+         jApply.push(names); 
+         return names;
+          //return { names };
         });
-      };
+      console.log(`@1 ${details})
+      };  //((job.targetDate===searchDate && hour<12) || (job.targetDate===nxDateStr && hour>12))
+      console.log(`@2 ${jApply})
       if (job.targetDate===searchDate) {
       /// if ((job.targetDate===searchDate && hour>12) ||(job.targetDate===nxDateStr && hour!==16)) continue;
        console.log(`DL対象: ${job.targetDate} ${job.time_full}`);
-       
-      };
+        const downloadPath = require('path').resolve('./downloads');
+        if (!fs.existsSync(downloadPath)) fs.mkdirSync(downloadPath);
+        await page._client().send('Page.setDownloadBehavior', {
+          behavior: 'allow',
+          downloadPath: downloadPath,
+        });
+        let csvBuffer = null;
+        const listener = async (res) => {
+          const url = res.url();
+          if (!url.includes('users.csv')) return;
+          if (res.request().method() !== 'GET') return;
+         try{
+          const buffer = await res.buffer();
+          if (buffer.length < 100) return;
+          if (buffer && buffer.length > 100) { csvBuffer = buffer; }
+         }catch(e){ console.log("CSV取得失敗:", e.message); }
+        };
+        page.on('response', listener);
+        const clicked = await page.evaluate(() => {
+          const btn = document.querySelector('button[data-dd-action-name*="CSVダウンロード"]');
+          if(btn){
+            btn.scrollIntoView();
+            btn.click();
+            return true;
+          }
+          return false;
+        });
+        for(let i=0;i<10;i++){
+          if(csvBuffer) break;
+          await new Promise(r => setTimeout(r,1000));
+        }
+        page.off('response', listener);
+        if(!csvBuffer){ throw new Error("CSV取得失敗"); }
+        const tempCsvName = `users_${CLIENT_ID}_${Date.now()}.csv`;
+        const tempCsvPath = path.join(downloadPath, tempCsvName);
+        fs.writeFileSync(tempCsvPath, csvBuffer);
+        console.log("CSV保存完了");
+        const csv = csvBuffer.toString("utf-8");
+        const lines = csv.split(/\r?\n/).filter(line => line.trim() !== "");
+        const data = lines.slice(1).map(l => l.split(","));
+        const staff = data.map(row => {
+          return { name: row[1], start: row[10], end: row[11] };
+        }).filter(Boolean);
+        if (fs.existsSync(tempCsvPath)) fs.unlinkSync(tempCsvPath);
+        isWorking = staff.some(s => s.end === null || s.end === '');
+        if (isWorking) {
+          console.log(`${store} 勤務中あり`);
+          if (hour !== 16) continue;
+        };
+        staff.forEach(s => {
+          const h = calcIndividualWork(s);
+          totalHours += parseFloat(h);
+          storeSummaryMap[h] = (storeSummaryMap[h] || 0) + 1;
+        });
+      }; //(job.targetDate===searchDate)
       
       /*const workerDetails = await page.evaluate(() => {
         const matchingDiv = document.querySelector('#matching');
@@ -231,7 +289,8 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
       if (job.startH < 12) amTotal += job.applied;
       if (job.endH > 13) pmTotal += job.applied;
     };
-    //const jobStatus2Msg = `\n--- ${store} 報告: ${jobCount}件 ---\n${nxDateStr}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
+
+   //const jobStatus2Msg = `\n--- ${store} 報告: ${jobCount}件 ---\n${nxDateStr}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
 //   let jobStatusMsg = `${nxDateStr}募集: ${jobCount}件`;
 //    jobStatus.forEach(p => jobStatusMsg += '\n'+ p);
     //console.log(jobStatus2Msg)
