@@ -202,12 +202,17 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
           }).filter(name => name); // nullを除外
          return names;
         });
-      console.log(`@1 ${details}`)
+console.log("@1 details =", details);
+console.log("@1 details(JSON) =", JSON.stringify(details));
+console.log("@2 jApply =", jApply);
+       jApply.push(...details);
+console.log("@2 jApply(JSON) =", JSON.stringify(jApply));
       };  //((job.targetDate===searchDate && hour<12) || (job.targetDate===nxDateStr && hour>12))
       console.log(`@2 ${jApply}`)
       if (job.targetDate===searchDate) {
       /// if ((job.targetDate===searchDate && hour>12) ||(job.targetDate===nxDateStr && hour!==16)) continue;
        console.log(`DL対象: ${job.targetDate} ${job.time_full}`);
+    continue;
         const downloadPath = require('path').resolve('./downloads');
         if (!fs.existsSync(downloadPath)) fs.mkdirSync(downloadPath);
         await page._client().send('Page.setDownloadBehavior', {
