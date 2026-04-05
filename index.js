@@ -189,7 +189,6 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
       ///if (job.targetDate===searchDate && hour>12) continue;
       if ((job.targetDate===searchDate && hour<12) || (job.targetDate===nxDateStr && hour>11)) {
        console.log(`詳細対象: ${job.targetDate} ${job.time_full}`);
-        jobCount++;
         const details = await page.evaluate(() => {
           const matchingDiv = document.querySelector('#matching');
           if (!matchingDiv) return [];
@@ -200,13 +199,12 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
           }).filter(name => name); // nullを除外
          return names;
         });
+        jobCount++;
         const namesStr = details.length>0 ? details.join('、') : "未応募";
-        const rpLine = `　${job.sts}　[${namesStr}]`;
-        jobStatus.push(rpLine);
+        jobStatus.push(`　${job.sts}　[${namesStr}]`);
         if (job.startH < 12) amTotal += job.applied;
         if (job.endH > 13) pmTotal += job.applied;
       };  //((job.targetDate===searchDate && hour<12) || (job.targetDate===nxDateStr && hour>12))
-      const jobStatusMsg = `\n--- ${store} 報告: ${jobCount}件 ---\n${nxDateStr}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${jobStatus.sort().join('\n')}\n`;
 
      
      if (job.targetDate===searchDate) {
@@ -296,6 +294,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
       if (job.endH > 13) pmTotal += job.applied;
       */
     };
+    const jobStatusMsg = `\n--- ${store} 報告: ${jobCount}件 ---\n${nxDateStr}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${jobStatus.sort().join('\n')}\n`;
     console.log('@@@\n'+jobStatusMsg)
 
    //const jobStatus2Msg = `\n--- ${store} 報告: ${jobCount}件 ---\n${nxDateStr}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
