@@ -199,7 +199,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
             const nameLink = row.querySelector('a[href*="/users/"] span');
             return nameLink ? nameLink.innerText.trim().split(/[ 　]/)[0] : null;
           }).filter(name => name); // nullを除外
-         return {found:true,rC:rows.length,names};
+         return names;
         });
          console.log("debugInfo       =", JSON.stringify(details, null, 2));
 console.log("@1 details =", details);
