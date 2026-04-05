@@ -44,7 +44,7 @@ try{
    const nxm = String(nDate.getMonth() + 1);
    const nxd = String(nDate.getDate());
   const nxStr = `${nxm}月${nxd}日`;
-  const nxdate = `${yyyy}/${nxm}/${nxd}`;
+  const nxDate = `${yyyy}/${nxm}/${nxd}`;
    
   const downloadPath = process.cwd();
   fs.readdirSync(downloadPath).forEach(f => {
