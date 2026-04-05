@@ -191,9 +191,9 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
       if ((job.targetDate===searchDate && hour<12) || (job.targetDate===nxDateStr && hour>11)) {
        console.log(`詳細対象: ${job.targetDate} ${job.time_full}`);
         jobCount++;
-        const matchingDiv = document.querySelector('#matching');
-        if (!matchingDiv) return [];
         const details = await page.evaluate(() => {
+          const matchingDiv = document.querySelector('#matching');
+          if (!matchingDiv) return [];
           const rows = Array.from(matchingDiv.querySelectorAll('table tbody tr'));
           const names = rows.map(row => {
             const nameLink = row.querySelector('a[href*="/users/"] span');
