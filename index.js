@@ -1,6 +1,6 @@
 process.env.TZ = "Asia/Tokyo";
-//const now = new Date();
-const now = new Date('2026/3/19 15:00');
+const now = new Date();
+///const now = new Date('2026/3/19 15:00');
 const hour = now.getHours();
 const puppeteer = require("puppeteer-core");
 const fs = require("fs");
