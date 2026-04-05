@@ -280,7 +280,7 @@ console.log(`staffNames ${staffNames}`)
     storeReport += '\n　募集なし';
   };
   if (totalVacancy >0) anyVacancies = true;
-  if (hour===16) {
+  if (hour===16 || hour===8 || !anyVacancies) {
 console.log(nxDate,totalStaff,staffNames,totalVacancy)
     await writeSheet(nxDate,time,store,totalStaff,staffNames,totalVacancy,'','');
   };
