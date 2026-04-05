@@ -40,7 +40,7 @@ try{
   const time = now.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
   const searchDate = `${mm}月${dd}日`;
   const nDate = now;
-  nDate.setDate(now.getDate() + 1);
+  nDate.setDate(nDate.getDate() + 1);
    const nxm = String(nDate.getMonth() + 1);
    const nxd = String(nDate.getDate());
   const nxStr = `${nxm}月${nxd}日`;
