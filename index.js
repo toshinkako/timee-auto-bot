@@ -187,7 +187,6 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
       await new Promise(r => setTimeout(r, 3000));
      //募集詳細
       ///if (job.targetDate===searchDate && hour>12) continue;
-      const jApply = [];
       if ((job.targetDate===searchDate && hour<12) || (job.targetDate===nxDateStr && hour>11)) {
        console.log(`詳細対象: ${job.targetDate} ${job.time_full}`);
         jobCount++;
@@ -206,16 +205,8 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
         jobStatus.push(rpLine);
         if (job.startH < 12) amTotal += job.applied;
         if (job.endH > 13) pmTotal += job.applied;
-
-       jApply.push(...details);
-console.log("@2 jApply(JSON) =", JSON.stringify(jApply));
       };  //((job.targetDate===searchDate && hour<12) || (job.targetDate===nxDateStr && hour>12))
-      console.log(`@2 ${jApply}`)
       const jobStatusMsg = `\n--- ${store} 報告: ${jobCount}件 ---\n${nxDateStr}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${jobStatus.sort().join('\n')}\n`;
-      console.log(jobStatusMsg)
-
-     
-
 
      
      if (job.targetDate===searchDate) {
@@ -305,6 +296,7 @@ console.log("@2 jApply(JSON) =", JSON.stringify(jApply));
       if (job.endH > 13) pmTotal += job.applied;
       */
     };
+    console.log('@@@\n'+jobStatusMsg)
 
    //const jobStatus2Msg = `\n--- ${store} 報告: ${jobCount}件 ---\n${nxDateStr}　　午前 ${amTotal}人　午後 ${pmTotal}人\n${shiftLines.sort().join('\n')}\n`;
 //   let jobStatusMsg = `${nxDateStr}募集: ${jobCount}件`;
@@ -319,7 +311,7 @@ console.log("@2 jApply(JSON) =", JSON.stringify(jApply));
 //      jobStatus += '\n'+ `　${job.targetDate}　${job.time_full}　${job.applied} | ${job.vacancy}`;
 //      totalVacancy += job.vacancy;
 //    });
-   
+   /*
    //jobループ
     for (const job of results) {
      if (hour<12 || job.targetDate===nxDateStr) continue;
@@ -398,9 +390,11 @@ console.log("@2 jApply(JSON) =", JSON.stringify(jApply));
          });
        }
     }; // jobループ終了
+    */
 
     if (totalVacancy >0) anyVacancies = true;
-    if (!isWorking && results.length >0 ) {
+console.log(`anyVacancies: ${anyVacancies}  isWorking: ${isWorking}`)
+   if (!isWorking && results.length >0 ) {
       const staffNamesStr = [...new Set(staffNames)].join(", ");
       const summaryStr = Object.entries(storeSummaryMap).map(([h, c]) => `${h} x ${c}`).join(", ");
       totalHours = totalHours.toFixed(2);
