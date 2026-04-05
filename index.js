@@ -192,19 +192,19 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
       if ((job.targetDate===searchDate && hour<12) || (job.targetDate===nxDateStr && hour>12)) {
        console.log(`詳細対象: ${job.targetDate} ${job.time_full}`);
         jobCount++;
+        const matchingDiv = document.querySelector('#matching');
+        if (!matchingDiv) return [];
         const details = await page.evaluate(() => {
           const rows = Array.from(matchingDiv.querySelectorAll('table tbody tr'));
           const names = rows.map(row => {
             const nameLink = row.querySelector('a[href*="/users/"] span');
             return nameLink ? nameLink.innerText.trim().split(/[ 　]/)[0] : null;
           }).filter(name => name); // nullを除外
-         jApply.push(names); 
          return names;
-          //return { names };
         });
-      console.log(`@1 ${details})
+      console.log(`@1 ${details}`)
       };  //((job.targetDate===searchDate && hour<12) || (job.targetDate===nxDateStr && hour>12))
-      console.log(`@2 ${jApply})
+      console.log(`@2 ${jApply}`)
       if (job.targetDate===searchDate) {
       /// if ((job.targetDate===searchDate && hour>12) ||(job.targetDate===nxDateStr && hour!==16)) continue;
        console.log(`DL対象: ${job.targetDate} ${job.time_full}`);
