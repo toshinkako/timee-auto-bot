@@ -279,6 +279,8 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
   };
   if (totalVacancy >0) anyVacancies = true;
   if (hour===16 || hour===8 || !anyVacancies) {
+    anyStoreSent = true;
+    sendMessage += storeReport;
     await writeSheet(nxDate,time,store,totalStaff,staffNames.join(', '),totalVacancy,'','');
   };
   
@@ -296,20 +298,21 @@ console.log(date,store,totalHours,summaryStr)
 
 
    // 店舗ごとのメッセージ組み立て
-    sendMessage += storeReport;
     console.log(`${store} 完了    ${storeReport}`);
 
     await page.goBack({ waitUntil: "networkidle2" });
   }    //ループ終了
-console.log(`anyVacancies: ${anyVacancies}  isWorking: ${isWorking}`)
 
- /// if (hour===16) anyStoreSent = true;
+ console.log(`anyVacancies: ${anyVacancies}  isWorking: ${isWorking}`)
+if (anyStoreSent){
+ console.log(sendMessage)
+}
  anyStoreSent = false
   if (anyStoreSent) {
     await transporter.sendMail({
       from: `"Timee自動報告" <toshin.kakou@gmail.com>`,
       to: "mizuno.yoshifumi@marushin-gp.co.jp",
-      subject: `【Timee報告】${searchDate} 勤務確認`,
+      subject: '【Timee報告】',
       text: sendMessage, // Slackと同じ内容を送信
     });
     console.log("Gmail送信完了");
