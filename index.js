@@ -202,7 +202,9 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
         return names;
       });
       jobCount++;
+      totalStaff += details.length;
       const namesStr = details.length>0 ? details.join('、') : "未応募";
+      staffNames = [...new Set(namesStr)].join(", ");
       jobStatus.push(`　${job.sts}　[${namesStr}]`);
       if (job.startH < 12) amTotal += job.applied;
       if (job.endH > 13) pmTotal += job.applied;
@@ -264,7 +266,6 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
         console.log(`${store} 勤務中あり`);
         continue;
       };
-      totalStaff += staff.length;
       staff.forEach(s => {
         const h = calcIndividualWork(s);
         totalHours += parseFloat(h);
@@ -279,14 +280,19 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
     storeReport += '\n　募集なし';
   };
   if (totalVacancy >0) anyVacancies = true;
+  if (hour===16) {
+console.log(rDate,totalStaff,staffNames,totalVacancy)
+    await writeSheet(rDate,time,store,totalStaff,staffNames,totalVacancy,'','');
+  };
+  
+
   
   if (!isWorking && results.length >0 ) {
       ///const staffNamesStr = [...new Set(staffNames)].join(", ");
       const summaryStr = Object.entries(storeSummaryMap).map(([h, c]) => `${c} x ${h}`).join(", ");
       totalHours = totalHours.toFixed(2);
-console.log(date,time,store,totalHours,summaryStr,'/',nxdate,totalStaff,staffNamesStr,totalVacancy)
+console.log(date,store,totalHours,summaryStr)
      await writeSheet(date,time,store,'','','',totalHours,summaryStr);
-      await writeSheet(nxdate,time,store,totalStaff,staffNamesStr,totalVacancy,'','');
       console.log(`${store} シート記録`);
     };
 
@@ -373,12 +379,12 @@ async function writeSheet(date, time, store, count, staff, vacancy, total, summa
 
   const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: "Sheet1!A:C" });
   const rows = res.data.values || [];
-  const rowIndex = rows.findIndex(row => normalizeDate(row[0]) === targetDate && row[2]?.trim() === store.trim());
+  const rowIndex = rows.findIndex(row => normalizeDate(row[0])===targetDate && row[2]?.trim()===store.trim());
   if (rowIndex !== -1) {
-    const values = [[staff,total, summary]];
+    const values = [[total, summary]];
     await sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: `Sheet1!J${rowIndex + 1}`,
+      range: `Sheet1!K${rowIndex + 1}`,
       valueInputOption: "USER_ENTERED",
       requestBody: { values }
     });
