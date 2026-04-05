@@ -178,6 +178,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
     return extracted;
   }, searchDate, nxDateStr);
 
+  let rDate = '';
   let jobCount = 0;
   let jobStatus = [];
   for (const job of results) {
@@ -186,6 +187,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
    //募集詳細
     if ((job.targetDate===searchDate && hour<12) || (job.targetDate===nxDateStr && hour>11)) {
      console.log(`詳細対象: ${job.targetDate} ${job.time_full}`);
+      if ( rDate==='') rDate = job.targetDate;
       const details = await page.evaluate(() => {
         const matchingDiv = document.querySelector('#matching');
         if (!matchingDiv) return [];
@@ -268,13 +270,13 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
        /// const countDiv = divs.find(d => d.innerText && d.innerText.includes('マッチングしたワーカー'));
        /// const countText = countDiv ? countDiv.innerText.match(/\d+\s*\/\s*\d+人/)?.[0] || "" : "";
   };
-  let storeReport = `\n--- ${store} 報告: ${job.targetDate}　${jobCount}件 ---`;
+  let storeReport = `\n--- ${store} 報告: ${rDate}　${jobCount}件 ---`;
   if (jobCount>0) {
     storeReport += `\n　　午前 ${amTotal}人　午後 ${pmTotal}人\n${jobStatus.sort().join('\n')}\n`;
   } else {
-    storeReport += '\n募集なし'
+    storeReport += '\n　募集なし';
   };
-
+  
    /*
    //jobループ
     for (const job of results) {
