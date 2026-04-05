@@ -198,15 +198,13 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
             return nameLink ? nameLink.innerText.trim().split(/[ 　]/)[0] : null;
           }).filter(name => name); // nullを除外
           return { names };
-        };
+        });
       };
       if (job.targetDate===searchDate) {
+     /// if ((job.targetDate===searchDate && hour>12) ||(job.targetDate===nxDateStr && hour!==16)) continue;
        console.log(`DL対象: ${job.targetDate} ${job.time_full}`);
        
       };
-     
-     /// if ((job.targetDate===searchDate && hour>12) ||(job.targetDate===nxDateStr && hour!==16)) continue;
-      console.log(`詳細TEXT 確認: ${job.targetDate} ${job.time_full}`);
       
       const workerDetails = await page.evaluate(() => {
         const matchingDiv = document.querySelector('#matching');
