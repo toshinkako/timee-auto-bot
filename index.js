@@ -274,15 +274,12 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
   let storeReport = `\n--- ${store} 報告: ${rDate}　${jobCount}件 ---`;
   if (jobCount>0) {
     storeReport += `\n　　午前 ${amTotal}人　午後 ${pmTotal}人\n${jobStatus.sort().join('\n')}\n`;
+    await writeSheet(rDate,time,store,totalStaff,staffNames.join(', '),totalVacancy,'','');
   } else {
     storeReport += '\n　募集なし\n';
   };
+  sendMessage += storeReport;
   if (totalVacancy >0) anyVacancies = true;
-  if (!anyVacancies) {
-    sendMessage += storeReport;
-    console.log(sendMessage);
-    await writeSheet(rDate,time,store,totalStaff,staffNames.join(', '),totalVacancy,'','');
-  };
   if (!isWorking && csvCount>0) {
 console.log(`csvCount ${csvCount}`)
     const summaryStr = Object.entries(storeSummaryMap).map(([h, c]) => `${c} x ${h}`).join(", ");
@@ -298,7 +295,8 @@ console.log(`anyVacancies: ${anyVacancies}  isWorking: ${isWorking}`)
 //  if (jobCount>0 && !anyVacancies) anyStoreSent = true;
 ///anyStoreSent = false
   if (anyStoreSent) {
-    await transporter.sendMail({
+   console.log(sendMessage);
+   await transporter.sendMail({
       from: `"Timee報告" <toshin.kakou@gmail.com>`,
       to: "mizuno.yoshifumi@marushin-gp.co.jp",
       subject: '【Timee報告】',
@@ -317,7 +315,7 @@ console.log(`anyVacancies: ${anyVacancies}  isWorking: ${isWorking}`)
     const statusData = { hasVacancies: anyVacancies };
     fs.writeFileSync('last_status.json', JSON.stringify(statusData));
     console.log(`Vacancyキャッシュ保存完了: ${anyVacancies}`);
-  }catch(e){ console.log('anyVacancies', e) };
+  }catch(e){ console.log('e/anyVacancies', e) };
   // --- 今回の結果を保存する ---
   const currentStatus = {
     vacant: anyVacancies,
@@ -388,12 +386,12 @@ async function writeSheet(date, time, store, count, staff, vacancy, total, summa
       valueInputOption: "USER_ENTERED",
       requestBody: { values }
     });
-    console.log(`${date}_${store} のデータを上書きしました。${values}`);
+    console.log(`データ更新 ${date}_${store}`);
   } else {
     const values = [[date, time, store, count, staff, vacancy, total, summary]];
     await sheets.spreadsheets.values.append({
       spreadsheetId, range: "Sheet1!A1", valueInputOption: "USER_ENTERED", requestBody: { values }
     });
-    console.log(`${date}_${store} の新規データを追加しました。\n${values}`);
+    console.log(`データ追加 ${date}_${store}`);
   }
 }
