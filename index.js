@@ -96,7 +96,7 @@ try{
   
   let sendMessage = '【Timee勤務確認】';
   let anyStoreSent = (hour===8||hour===17);
-  let isWorking = true;
+  let isWorking = false;
   let anyVacancies = false;
 if (hour<12 && lastStatus.vacant===false)sendMessage += '(テスト) 残なし'
 if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テスト) 終了'
@@ -259,8 +259,8 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
       }).filter(Boolean);
       if (fs.existsSync(tempCsvPath)) fs.unlinkSync(tempCsvPath);
       const worker = staff.some(s => s.end===null || s.end==='');
-      isWorking = isWorking || worker;
-      if (isWorking) {
+      isWorking = worker || isWorking;
+      if (!worker) {
         staff.forEach(s => {
           const h = calcIndividualWork(s);
           totalHours += parseFloat(h);
