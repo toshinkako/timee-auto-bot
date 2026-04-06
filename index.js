@@ -270,7 +270,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
       };
     };
   }; //jobループ
-  console.log(`rDate ${rDate})
+  console.log(`rDate ${rDate}`)
   let storeReport = `\n--- ${store} 報告: ${rDate}　${jobCount}件 ---`;
   if (jobCount>0) {
     storeReport += `\n　　午前 ${amTotal}人　午後 ${pmTotal}人\n${jobStatus.sort().join('\n')}\n`;
