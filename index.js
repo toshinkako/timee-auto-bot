@@ -281,7 +281,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
   if (!anyVacancies) {
     sendMessage += storeReport;
     console.log(sendMessage);
-    await writeSheet(nxDate,time,store,totalStaff,staffNames.join(', '),totalVacancy,'','');
+    await writeSheet(rDate,time,store,totalStaff,staffNames.join(', '),totalVacancy,'','');
   };
   if (!isWorking && csvCount>0) {
 console.log(`csvCount ${csvCount}`)
@@ -356,7 +356,7 @@ function roundTm(date,fm){
   };
   return d;
 };
-
+/*
 function roundUp(date){
   const d = new Date(date);
   d.setMinutes(Math.ceil(d.getMinutes()/15)*15);
@@ -368,7 +368,7 @@ function roundDown(date){
   d.setMinutes(Math.floor(d.getMinutes()/15)*15);
   return d;
 }
-
+*/
 async function writeSheet(date, time, store, count, staff, vacancy, total, summary) {
   const auth = new google.auth.GoogleAuth({ credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT), scopes: ["https://www.googleapis.com/auth/spreadsheets"] });
   const sheets = google.sheets({ version: "v4", auth });
