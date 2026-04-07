@@ -37,7 +37,8 @@ jobs:
         id: check_skip
         run: |
           HOUR=$(date +%H)
-          if [ "$HOUR" = "23" ] && [ -f last_status.json ]; then
+          #if [ "$HOUR" = "23" ] && [ -f last_status.json ]; then
+          if ([ "$HOUR" = "21" ] || [ "$HOUR" = "23" ]) && [ -f last_status.json ]; then
             HAS_VACANCY=$(jq -r '.hasVacancies' last_status.json)
             echo "has_vacancy=$HAS_VACANCY" >> $GITHUB_OUTPUT
           else
