@@ -10,15 +10,16 @@ if (fs.existsSync(cachePath)) {
  try{
   lastStatus = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
   console.log(`前回の状態( ${lastStatus.updatedAt} ${lastStatus.vacant}　${lastStatus.working})`);
+  if (hour===14) lastStatus.working = true;
  } catch(e) {};
 };
 if (hour<12 && lastStatus.vacant===false) {
   console.log("残り枠なし。スキップ。");
-  //return;
+  return;
 };
 if (hour>12 && hour!==16 && lastStatus.working===false) {
   console.log("退勤済み。スキップ。");
- // return;
+  return;
 };
 const path = require('path');
 const XLSX = require("xlsx");
