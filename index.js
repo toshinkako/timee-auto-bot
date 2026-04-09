@@ -2,6 +2,8 @@ process.env.TZ = "Asia/Tokyo";
 const now = new Date();
 ///const now = new Date('2026/4/06 09:00');
 const hour = now.getHours();
+const dy = now.getday();
+console.log('dy',dy);
 const puppeteer = require("puppeteer-core");
 const fs = require("fs");
 const cachePath = './last_status.json';
