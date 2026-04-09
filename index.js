@@ -10,7 +10,8 @@ if (fs.existsSync(cachePath)) {
  try{
   lastStatus = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
   console.log(`前回の状態( ${lastStatus.updatedAt} ${lastStatus.vacant}　${lastStatus.working})`);
-  if (hour===14) lastStatus.working = true;
+  if (hour<15) lastStatus.working = true;
+  if (hour>15) lastStatus.vacant = true;
  } catch(e) {};
 };
 if (hour<12 && lastStatus.vacant===false) {
@@ -103,7 +104,7 @@ if (hour<12 && lastStatus.vacant===false)sendMessage += '(テスト) 残なし'
 if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テスト) 終了'
  // 店舗ループ
  for(const CLIENT_ID of CLIENT_IDS){
-  if (hour===6 && anyVacancies) continue;
+  if (hour===6 && anyVacancies)break;
   //リスト表示・データ抽出
   const store = STORE_NAMES[CLIENT_ID];
   let totalStaff = 0;
