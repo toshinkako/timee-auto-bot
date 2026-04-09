@@ -2,29 +2,22 @@ name: Timee Auto Bot
 
 on:
   schedule:
-    - cron: '0 21 * * *'      # JST 06:00 (朝の初回)
-    - cron: '0 23 * * *'      # JST 08:00 (朝の再確認：スキップ判定対象)
-    - cron: '0 5-8 * * *'  # JST 14:00-17:00 (午後再確認)
-    - cron: '30 5-7 * * *'  # JST 14:30-16:30 (午後再確認)
-    #- cron: '30 6 * * *'      # JST 15:30 (午後)
+    - cron: '0 21 * * *'      # JST 06:00
+    - cron: '0 23 * * *'      # JST 08:00
+    - cron: '0 5-8 * * *'     # JST 14:00-17:00
+    - cron: '30 5-7 * * *'    # JST 14:30-16:30
   workflow_dispatch:
-
+  
 jobs:
   run-bot:
     runs-on: ubuntu-latest
+    env:
+      TZ: Asia/Tokyo
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-
-      - name: Restore/Save Cache
-        uses: actions/cache@v4
-        with:
-          path: last_bot.json
-          key: taimiee-status-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: |
-            taimiee-status-
 
       - name: Restore last status
         uses: actions/cache@v4
@@ -37,32 +30,31 @@ jobs:
         id: check_skip
         run: |
           HOUR=$(date +%H)
-          #if [ "$HOUR" = "23" ] && [ -f last_status.json ]; then
-          if ([ "$HOUR" = "21" ] || [ "$HOUR" = "23" ]) && [ -f last_status.json ]; then
+          echo "Current JST Hour: $HOUR"
+          if ([ "$HOUR" = "06" ] || [ "$HOUR" = "08" ]) && [ -f last_status.json ]; then
             HAS_VACANCY=$(jq -r '.hasVacancies' last_status.json)
             echo "has_vacancy=$HAS_VACANCY" >> $GITHUB_OUTPUT
+            echo "Checked cache: has_vacancy=$HAS_VACANCY"
           else
             echo "has_vacancy=true" >> $GITHUB_OUTPUT
+            echo "Default: has_vacancy=true"
           fi
-                
+
       - name: Setup Node
         if: steps.check_skip.outputs.has_vacancy == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-
       - name: Install Chrome
         if: steps.check_skip.outputs.has_vacancy == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y google-chrome-stable
-          
       - name: Install Japanese fonts
         if: steps.check_skip.outputs.has_vacancy == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y fonts-noto-cjk
-
       - name: Install dependencies
         if: steps.check_skip.outputs.has_vacancy == 'true'
         run: npm install
@@ -78,14 +70,12 @@ jobs:
           GOOGLE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SERVICE_ACCOUNT }}
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_PASS: ${{ secrets.GMAIL_PASS }}
-          
       - name: Save status for next run
         if: always()
         uses: actions/cache@v4
         with:
           path: last_status.json
           key: status-${{ github.run_id }}-${{ github.run_number }}
-
       - name: Upload screenshots on failure
         uses: actions/upload-artifact@v4
         if: always()
@@ -93,7 +83,6 @@ jobs:
           name: debug-screenshots
           path: "*.png"
           retention-days: 3 # 3日間保存
-
       - name: Upload Excel
         uses: actions/upload-artifact@v4
         if: always()
