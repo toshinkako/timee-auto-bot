@@ -340,6 +340,7 @@ function calcIndividualWork(s) {
   const he = s.end.split(':')[0];
   ///if (h > 3.5) h -= 1;
   if (hs<12 && he>13) h -= 1;
+ console.log(s,h,hs,he)
   return h.toFixed(2);
 }
 
@@ -352,19 +353,7 @@ function roundTm(date,fm){
   };
   return d;
 };
-/*
-function roundUp(date){
-  const d = new Date(date);
-  d.setMinutes(Math.ceil(d.getMinutes()/15)*15);
-  return d;
-}
 
-function roundDown(date){
-  const d = new Date(date);
-  d.setMinutes(Math.floor(d.getMinutes()/15)*15);
-  return d;
-}
-*/
 async function writeSheet(date, time, store, count, staff, vacancy, total, summary) {
   const auth = new google.auth.GoogleAuth({ credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT), scopes: ["https://www.googleapis.com/auth/spreadsheets"] });
   const sheets = google.sheets({ version: "v4", auth });
