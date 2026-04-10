@@ -2,8 +2,8 @@ process.env.TZ = "Asia/Tokyo";
 const now = new Date();
 ///const now = new Date('2026/4/06 09:00');
 const hour = now.getHours();
-const dy = now.getday();
-console.log('dy',dy);
+///const dy = now.getday();
+///console.log('dy',dy);
 const puppeteer = require("puppeteer-core");
 const fs = require("fs");
 const cachePath = './last_status.json';
@@ -273,7 +273,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
       };
     };
   }; //jobループ
-  let storeReport = `\n--- ${store} 報告: ${rDate}　${jobCount}件 ---`;
+  let storeReport = `\n--- ${store} 　: ${rDate}　${jobCount}件 ---`;
   if (jobCount>0) {
     storeReport += `\n　　午前 ${amTotal}人　午後 ${pmTotal}人\n${jobStatus.sort().join('\n')}\n`;
     await writeSheet(rDate,time,store,totalStaff,staffNames.join(', '),totalVacancy,'','');
