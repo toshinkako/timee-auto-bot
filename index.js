@@ -2,8 +2,6 @@ process.env.TZ = "Asia/Tokyo";
 const now = new Date();
 ///const now = new Date('2026/4/06 09:00');
 const hour = now.getHours();
-///const dy = now.getday();
-///console.log('dy',dy);
 const puppeteer = require("puppeteer-core");
 const fs = require("fs");
 const cachePath = './last_status.json';
@@ -44,7 +42,10 @@ try{
   const time = now.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
   const searchDate = `${mm}月${dd}日`;
   const nDate = now;
-  nDate.setDate(nDate.getDate() + 1);
+const dy = now.getDay();
+console.log('dy',dy);
+
+ nDate.setDate(nDate.getDate() + 1);
    const nxm = String(nDate.getMonth() + 1);
    const nxd = String(nDate.getDate());
   const nxStr = `${nxm}月${nxd}日`;
