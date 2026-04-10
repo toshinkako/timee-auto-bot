@@ -42,10 +42,8 @@ try{
   const time = now.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
   const searchDate = `${mm}月${dd}日`;
   const nDate = now;
-const dy = now.getDay();
-console.log('dy',dy);
-
- nDate.setDate(nDate.getDate() + 1);
+ const dy = now.getDay();
+ nDate.setDate(nDate.getDate() + (dy===6?2:dy===2?2:1));
    const nxm = String(nDate.getMonth() + 1);
    const nxd = String(nDate.getDate());
   const nxStr = `${nxm}月${nxd}日`;
