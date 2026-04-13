@@ -274,7 +274,7 @@ if (hour>12 && hour!==16 && lastStatus.working===false) sendMessage += '(テス�
   }; //jobループ
   let storeReport = `\n--- ${store} 　: ${rDate}　${jobCount}件 ---`;
   if (jobCount>0) {
-    storeReport += `\n　　午前 ${amTotal}人　午後 ${pmTotal}人\n${jobStatus.sort().join('\n')}\n`;
+    storeReport += `\n　${jobStatus.sort().join('\n')}\n午前 ${amTotal}人　午後 ${pmTotal}人\n`;
     await writeSheet(rDate,time,store,totalStaff,staffNames.join(', '),totalVacancy,'','');
   } else {
     storeReport += '\n　募集なし\n';
