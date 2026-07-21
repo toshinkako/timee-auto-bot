@@ -7,7 +7,7 @@ on:
     - cron: '43 4 * * *'
     - cron: '13,43 5-6 * * *'
     - cron: '13 7 * * *'
-    - cron: '43 7 * * *'
+   # - cron: '43 7 * * *'
     - cron: '13,43 8 * * *'
     - cron: '13 9 * * *'
   workflow_dispatch:
